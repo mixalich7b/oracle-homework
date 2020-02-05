@@ -8,12 +8,16 @@ is
     return varchar2
   is
     v_result varchar2(4000 char);
+    v_idx varchar2(3 char);
   begin
 
     v_result := p_input;
 
-    for russian_letter in g_translit_map.first .. g_translit_map.last  loop
-      v_result := replace(v_result, russian_letter, g_translit_map(russian_letter));
+    v_idx := g_translit_map.first;
+    while (v_idx is not null)
+    loop
+      v_result := replace(v_result, v_idx, g_translit_map(v_idx));
+      v_idx := g_translit_map.next(v_idx);
     end loop;
 
     return v_result;
