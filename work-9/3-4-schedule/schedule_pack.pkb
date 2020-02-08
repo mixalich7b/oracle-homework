@@ -3,15 +3,23 @@ is
 
   e_not_valid_day_of_month exception;
 
+  type t_minutes is varray(60) of number(1, 0);
+  type t_hours is varray(24) of number(2, 0);
+  type t_weekdays is varray(7) of number(1, 0);
+  type t_days is varray(31) of number(1, 0);
+  type t_month is varray(12) of number(2, 0);
+
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
   type t_schedule is record  (
-    minutes varray(60) of number(1, 0),
-    hours varray(24) of number(2, 0),
-    weekdays varray(7) of number(1, 0),
-    days varray(31) of number(1, 0),
+  	-- если минута есть в расписании, то по её номеру будет находится 1; иначе - 0
+    minutes t_minutes,
     -- если месяц есть в расписании, то по его номеру будет находится 1; иначе - 0
-    months varray(12) of number(2, 0)
+    hours t_hours,
+    -- и тд
+    weekdays t_weekdays,
+    days t_days,
+    months t_month
   );
 
   function get_next_run_date(p_from in date, p_schedule_raw in varchar2)
@@ -38,13 +46,14 @@ is
 
   -- находит ближайшую дату относительно заданной
   -- месяц которой будет находится в расписании
-  function find_month(v_from in date, p_schedule in t_schedule)
+  function find_month(p_from in date, p_schedule in t_schedule)
     return date
   is
     v_date date;
     v_current_month number;
+    v_current_year number;
   begin
-    v_date := v_from;
+    v_date := p_from;
     v_current_month := extract_month(v_date);
     -- если текущий месяц есть в расписании - оставляем его
     if contains_month(v_current_month, p_schedule) then
@@ -66,12 +75,13 @@ is
   -- находит ближайшую дату относительно заданной
   -- день которой будет находиться в расписании
   -- с учетом ограничения по дням месяца и дням недели
-  function find_day(v_from in date, p_schedule in t_schedule)
+  function find_day(p_from in date, p_schedule in t_schedule)
     return date
   is
+    v_date date;
     v_current_day number;
   begin
-    v_date := v_from;
+    v_date := p_from;
     v_current_day := extract_day(v_date);
     if contains_day_of_month(v_current_day, p_schedule) then
       if contains_day_of_week(v_current_day, p_schedule) then
@@ -85,11 +95,14 @@ is
     end if;
   end;
 
-  function find_next_day(v_from in date, p_schedule in t_schedule)
+  function find_next_day(p_from in date, p_schedule in t_schedule)
     return date 
   is
+    v_date date;
+    v_current_day number;
+    v_current_month number;
   begin
-    v_date := v_from;
+    v_date := p_from;
     v_current_day := extract_day(v_date);
     v_current_day := next_day(v_current_day, p_schedule);
     if v_current_day == -1 then
@@ -149,6 +162,7 @@ is
   is
     v_date date;
     v_next_minute number;
+    v_current_hour number;
   begin
     v_date := p_from;
     -- текущую минуту не берём, так как она уже началась
@@ -311,70 +325,70 @@ is
   exception
   end;
 
-  function extract_year(v_date in date)
+  function extract_year(p_date in date)
     return number
   is
   begin
-    return extract(year from v_date);
+    return extract(year from p_date);
   end;
 
-  function extract_month(v_date in date)
+  function extract_month(p_date in date)
     return number
   is
   begin
-    return extract(month from v_date);
+    return extract(month from p_date);
   end;
 
-  function extract_day(v_date in date)
+  function extract_day(p_date in date)
     return number
   is
   begin
-    return extract(day from v_date);
+    return extract(day from p_date);
   end;
 
-  function extract_hour(v_date in date)
+  function extract_hour(p_date in date)
     returns number
   is
   begin
-    return extract(hour from cast(v_date as timestamp));
+    return extract(hour from cast(p_date as timestamp));
   end;
 
-  function extract_next_minute(v_date in date)
+  function extract_next_minute(p_date in date)
     returns number
   is
   begin
-    return extract(minute from cast(v_date+1/24/60 as timestamp));
+    return extract(minute from cast(p_date+1/24/60 as timestamp));
   end;
 
   -- проверяет, есть ли  месяц в расписании
-  function contains_month(v_month in number, p_schedule in t_schedule)
+  function contains_month(p_month in number, p_schedule in t_schedule)
     return boolean
   is
   begin
-    if p_schedule.months(v_month) == 1 then
+    if p_schedule.months(p_month) == 1 then
       return 1;
     else
       return 0;
     end if;
   end;
 
-  function contains_day_of_month(v_day_of_month in number,  p_schedule in t_schedule)
+  function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
     return boolean
   is
   begin
-    if p_schedule.days(v_day_of_month) == 1 then
+    if p_schedule.days(p_day_of_month) == 1 then
       return 1;
     else
       return 0;
     end if;
   end;
 
-  function contains_day_of_week(v_date in date, p_schedule in t_schedule)
+  function contains_day_of_week(p_date in date, p_schedule in t_schedule)
     return boolean
   is
     v_day_of_week number;
   begin
-    v_day_of_week := to_number(to_char(v_date, 'd'));
+    v_day_of_week := to_number(to_char(p_date, 'd'));
     if p_schedule.weekdays(v_day_of_week) == 1 then
       return 1;
     else
@@ -382,22 +396,22 @@ is
     end if;
   end;
 
-  function contains_hour(v_hour in number, p_schedule in t_schedule)
+  function contains_hour(p_hour in number, p_schedule in t_schedule)
     return boolean
   is
   begin
-    if p_schedule.hours(v_hour) == 1 then
+    if p_schedule.hours(p_hour) == 1 then
       return 1;
     else
       return 0;
     end if;
   end;
 
-  function contains_minute(v_minute in number, p_schedule in t_schedule)
+  function contains_minute(p_minute in number, p_schedule in t_schedule)
     return boolean
   is
   begin
-    if p_schedule.minutes(v_minute) == 1 then
+    if p_schedule.minutes(p_minute) == 1 then
       return 1;
     else
       return 0;
@@ -417,7 +431,42 @@ is
       parse_days(p_schedule_raw),
       parse_months(p_schedule_raw)
     );
-  end
+  end;
+
+  function parse_minutes(p_schedule_raw in varchar2)
+    return t_minutes
+  is
+  begin
+    return t_minutes(0, 45);
+  end;
+
+  function parse_hours(p_schedule_raw in varchar2)
+    return t_hours
+  is
+  begin
+    return t_hours(12);
+  end;
+
+  function parse_weekdays(p_schedule_raw in varchar2)
+    return t_weekdays
+  is
+  begin
+    return t_weekdays(1, 2, 6);
+  end;
+
+  function parse_days(p_schedule_raw in varchar2)
+    return t_days
+  is
+  begin
+    return t_days(3,6,14,18,21,24,28);
+  end;
+
+  function parse_months(p_schedule_raw in varchar2)
+    return t_month
+  is
+  begin
+    return t_month(1,2,3,4,5,6,7,8,9,10,11,12);
+  end;
 
 end;
 /
