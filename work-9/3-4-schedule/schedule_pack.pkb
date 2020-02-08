@@ -22,26 +22,97 @@ is
     months t_month
   );
 
-  function get_next_run_date(p_from in date, p_schedule_raw in varchar2)
-    return date
+  function extract_year(p_date in date)
+    return number
   is
-    v_schedule t_schedule;
   begin
-    v_schedule := parse_schedule(p_schedule_raw);
-    return find_next(p_from, v_schedule);
+    return extract(year from p_date);
   end;
 
-  function find_next(p_from in date, p_schedule in t_schedule)
-   return date
+  function extract_month(p_date in date)
+    return number
   is
-    v_current date;
   begin
-    v_current := p_from;
+    return extract(month from p_date);
+  end;
 
-    v_current := find_month(v_current, p_schedule);
-    v_current := find_day(v_current, p_schedule);
-    v_current := find_hour(v_current, p_schedule);
-    return find_minute(v_current,  p_schedule);
+  function extract_day(p_date in date)
+    return number
+  is
+  begin
+    return extract(day from p_date);
+  end;
+
+  function extract_hour(p_date in date)
+    return number
+  is
+  begin
+    return extract(hour from cast(p_date as timestamp));
+  end;
+
+  function extract_next_minute(p_date in date)
+    return number
+  is
+  begin
+    return extract(minute from cast(p_date+1/24/60 as timestamp));
+  end;
+
+  -- проверяет, есть ли  месяц в расписании
+  function contains_month(p_month in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_schedule.months(p_month) = 1 then
+      return 1;
+    else
+      return 0;
+    end if;
+  end;
+
+  function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_schedule.days(p_day_of_month) = 1 then
+      return 1;
+    else
+      return 0;
+    end if;
+  end;
+
+  function contains_day_of_week(p_date in date, p_schedule in t_schedule)
+    return boolean
+  is
+    v_day_of_week number;
+  begin
+    v_day_of_week := to_number(to_char(p_date, 'd'));
+    if p_schedule.weekdays(v_day_of_week) = 1 then
+      return 1;
+    else
+      return 0;
+    end if;
+  end;
+
+  function contains_hour(p_hour in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_schedule.hours(p_hour) = 1 then
+      return 1;
+    else
+      return 0;
+    end if;
+  end;
+
+  function contains_minute(p_minute in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_schedule.minutes(p_minute) = 1 then
+      return 1;
+    else
+      return 0;
+    end if;
   end;
 
   -- находит ближайшую дату относительно заданной
@@ -323,114 +394,6 @@ is
     return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
   end;
 
-  function extract_year(p_date in date)
-    return number
-  is
-  begin
-    return extract(year from p_date);
-  end;
-
-  function extract_month(p_date in date)
-    return number
-  is
-  begin
-    return extract(month from p_date);
-  end;
-
-  function extract_day(p_date in date)
-    return number
-  is
-  begin
-    return extract(day from p_date);
-  end;
-
-  function extract_hour(p_date in date)
-    return number
-  is
-  begin
-    return extract(hour from cast(p_date as timestamp));
-  end;
-
-  function extract_next_minute(p_date in date)
-    return number
-  is
-  begin
-    return extract(minute from cast(p_date+1/24/60 as timestamp));
-  end;
-
-  -- проверяет, есть ли  месяц в расписании
-  function contains_month(p_month in number, p_schedule in t_schedule)
-    return boolean
-  is
-  begin
-    if p_schedule.months(p_month) = 1 then
-      return 1;
-    else
-      return 0;
-    end if;
-  end;
-
-  function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
-    return boolean
-  is
-  begin
-    if p_schedule.days(p_day_of_month) = 1 then
-      return 1;
-    else
-      return 0;
-    end if;
-  end;
-
-  function contains_day_of_week(p_date in date, p_schedule in t_schedule)
-    return boolean
-  is
-    v_day_of_week number;
-  begin
-    v_day_of_week := to_number(to_char(p_date, 'd'));
-    if p_schedule.weekdays(v_day_of_week) = 1 then
-      return 1;
-    else
-      return 0;
-    end if;
-  end;
-
-  function contains_hour(p_hour in number, p_schedule in t_schedule)
-    return boolean
-  is
-  begin
-    if p_schedule.hours(p_hour) = 1 then
-      return 1;
-    else
-      return 0;
-    end if;
-  end;
-
-  function contains_minute(p_minute in number, p_schedule in t_schedule)
-    return boolean
-  is
-  begin
-    if p_schedule.minutes(p_minute) = 1 then
-      return 1;
-    else
-      return 0;
-    end if;
-  end;
-
-  -- разбирает входную строку с расписанием
-  -- и создаёт объект типа t_schedule
-  function parse_schedule(p_schedule_raw in varchar2)
-    return t_schedule
-  is
-  begin
-    return t_schedule(
-      parse_minutes(p_schedule_raw),
-      parse_hours(p_schedule_raw),
-      parse_weekdays(p_schedule_raw),
-      parse_days(p_schedule_raw),
-      parse_months(p_schedule_raw)
-    );
-  end;
-
   function parse_minutes(p_schedule_raw in varchar2)
     return t_minutes
   is
@@ -464,6 +427,43 @@ is
   is
   begin
     return t_month(1,2,3,4,5,6,7,8,9,10,11,12);
+  end;
+
+  -- разбирает входную строку с расписанием
+  -- и создаёт объект типа t_schedule
+  function parse_schedule(p_schedule_raw in varchar2)
+    return t_schedule
+  is
+  begin
+    return t_schedule(
+      parse_minutes(p_schedule_raw),
+      parse_hours(p_schedule_raw),
+      parse_weekdays(p_schedule_raw),
+      parse_days(p_schedule_raw),
+      parse_months(p_schedule_raw)
+    );
+  end;
+
+  function find_next(p_from in date, p_schedule in t_schedule)
+   return date
+  is
+    v_current date;
+  begin
+    v_current := p_from;
+
+    v_current := find_month(v_current, p_schedule);
+    v_current := find_day(v_current, p_schedule);
+    v_current := find_hour(v_current, p_schedule);
+    return find_minute(v_current,  p_schedule);
+  end;
+
+  function get_next_run_date(p_from in date, p_schedule_raw in varchar2)
+    return date
+  is
+    v_schedule t_schedule;
+  begin
+    v_schedule := parse_schedule(p_schedule_raw);
+    return find_next(p_from, v_schedule);
   end;
 
 end;
