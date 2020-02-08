@@ -61,7 +61,7 @@ is
     else
       -- иначе ищем следующий по расписанию
       v_current_month := next_month(v_current_month, p_schedule);
-      if v_current_month == -1 then
+      if v_current_month = -1 then
         v_current_year := extract_year(v_date);
         -- возможно он будет уже в следующем году
         v_date := start_of_year(v_current_year + 1);
@@ -105,7 +105,7 @@ is
     v_date := p_from;
     v_current_day := extract_day(v_date);
     v_current_day := next_day(v_current_day, p_schedule);
-    if v_current_day == -1 then
+    if v_current_day = -1 then
         v_current_month := extract_month(v_date);
         -- возможно он будет уже в следующем месяце
         v_date := start_of_month(v_current_month+1, v_date);
@@ -144,7 +144,7 @@ is
     else
       -- иначе ищем следующий по расписанию
       v_current_hour := next_hour(v_current_hour, p_schedule);
-      if v_current_hour == -1 then
+      if v_current_hour = -1 then
         -- возможно он будет уже в следующем дне
         v_date := find_next_day(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего дня
@@ -174,7 +174,7 @@ is
     else
       -- иначе ищем следующую по расписанию
       v_next_minute := next_minute(v_next_minute, p_schedule);
-      if v_next_minute == -1 then
+      if v_next_minute = -1 then
         v_current_hour := extract_hour(v_date);
         -- возможно она будет уже в следующем часе
         v_date := start_of_hour(v_current_hour + 1);
@@ -196,7 +196,7 @@ is
     for idx in p_schedule.months(p_current_month) .. p_schedule.months.last
     loop
       if idx > p_current_month then
-        if p_schedule.months(idx) == 1 then
+        if p_schedule.months(idx) = 1 then
           return p_schedule.months(idx);
         end if;
       end if;
@@ -214,7 +214,7 @@ is
     for idx in p_schedule.days(p_current_day) .. p_schedule.days.last
     loop
       if idx > p_current_day then
-        if p_schedule.days(idx) == 1 then
+        if p_schedule.days(idx) = 1 then
           return p_schedule.days(idx);
         end if;
       end if;
@@ -230,7 +230,7 @@ is
     for idx in p_schedule.hours(p_current_hour) .. p_schedule.hours.last
     loop
       if idx > p_current_hour then
-        if p_schedule.hours(idx) == 1 then
+        if p_schedule.hours(idx) = 1 then
           return p_schedule.hours(idx);
         end if;
       end if;
@@ -246,7 +246,7 @@ is
     for idx in p_schedule.minutes(p_current_minute) .. p_schedule.minutes.last
     loop
       if idx > p_current_minute then
-        if p_schedule.minutes(idx) == 1 then
+        if p_schedule.minutes(idx) = 1 then
           return p_schedule.minutes(idx);
         end if;
       end if;
@@ -365,7 +365,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.months(p_month) == 1 then
+    if p_schedule.months(p_month) = 1 then
       return 1;
     else
       return 0;
@@ -376,7 +376,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.days(p_day_of_month) == 1 then
+    if p_schedule.days(p_day_of_month) = 1 then
       return 1;
     else
       return 0;
@@ -389,7 +389,7 @@ is
     v_day_of_week number;
   begin
     v_day_of_week := to_number(to_char(p_date, 'd'));
-    if p_schedule.weekdays(v_day_of_week) == 1 then
+    if p_schedule.weekdays(v_day_of_week) = 1 then
       return 1;
     else
       return 0;
@@ -400,7 +400,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.hours(p_hour) == 1 then
+    if p_schedule.hours(p_hour) = 1 then
       return 1;
     else
       return 0;
@@ -411,7 +411,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.minutes(p_minute) == 1 then
+    if p_schedule.minutes(p_minute) = 1 then
       return 1;
     else
       return 0;
