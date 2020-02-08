@@ -3,10 +3,10 @@ is
 
   e_not_valid_day_of_month exception;
 
-  type t_minutes is varray(60) of number(1, 0);
+  type t_minutes is varray(60) of number(2, 0);
   type t_hours is varray(24) of number(2, 0);
   type t_weekdays is varray(7) of number(1, 0);
-  type t_days is varray(31) of number(1, 0);
+  type t_days is varray(31) of number(2, 0);
   type t_month is varray(12) of number(2, 0);
 
   -- расписание состоит из коллекции для каждой единицы:
@@ -80,13 +80,11 @@ is
     end if;
   end;
 
-  function contains_day_of_week(p_date in date, p_schedule in t_schedule)
+  function contains_day_of_week(p_day_of_week in number, p_schedule in t_schedule)
     return boolean
   is
-    v_day_of_week number;
   begin
-    v_day_of_week := to_number(to_char(p_date, 'd'));
-    if p_schedule.weekdays(v_day_of_week) = 1 then
+    if p_schedule.weekdays(p_day_of_week) = 1 then
       return TRUE;
     else
       return FALSE;
@@ -279,6 +277,9 @@ is
     end if;
   end;
 
+  function find_next_day(p_from in date, p_schedule in t_schedule)
+    return date;
+
   -- находит ближайшую дату относительно заданной
   -- день которой будет находиться в расписании
   -- с учетом ограничения по дням месяца и дням недели
@@ -287,11 +288,13 @@ is
   is
     v_date date;
     v_current_day number;
+    v_day_of_week number;
   begin
     v_date := p_from;
     v_current_day := extract_day(v_date);
     if contains_day_of_month(v_current_day, p_schedule) then
-      if contains_day_of_week(v_current_day, p_schedule) then
+      v_day_of_week := to_number(to_char(v_date, 'd'));
+      if contains_day_of_week(v_day_of_week, p_schedule) then
         return v_date;
       else
         -- если текущий день не подходит под расписание, то начинаем искать следующий
@@ -302,6 +305,9 @@ is
     end if;
   end;
 
+  -- находит ближайшую дату начиная со следующего дня относительно заданной
+  -- день которой будет находиться в расписании
+  -- с учетом ограничения по дням месяца и дням недели
   function find_next_day(p_from in date, p_schedule in t_schedule)
     return date 
   is
@@ -318,12 +324,12 @@ is
         v_date := start_of_month(v_current_month+1, v_date);
         v_date := find_month(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего месяца
-        return find_day(v_date);
+        return find_day(v_date, p_schedule);
     else
         v_date := start_of_day(v_current_day, v_date);
         -- рекурсивно продолжаем со следующего дня
         -- ведь проверка на день недели происходит в find_day
-        return find_day(v_date);
+        return find_day(v_date, p_schedule);
     end if;
   exception
     -- если подходящий день не существует в текущем месяце
@@ -332,7 +338,7 @@ is
       v_current_month := extract_month(v_date);
       v_date := start_of_month(v_current_month+1, v_date);
       v_date := find_month(v_date, p_schedule);
-      return find_day(v_date);
+      return find_day(v_date, p_schedule);
   end;
 
   -- находит ближайшую дату относительно заданной
@@ -384,10 +390,10 @@ is
       if v_next_minute = -1 then
         v_current_hour := extract_hour(v_date);
         -- возможно она будет уже в следующем часе
-        v_date := start_of_hour(v_current_hour + 1);
+        v_date := start_of_hour(v_current_hour + 1, v_date);
         v_date := find_hour(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего часа
-        return find_minute(v_date);
+        return find_minute(v_date, p_schedule);
       else
         return start_of_minute(v_next_minute, v_date);
       end if;
