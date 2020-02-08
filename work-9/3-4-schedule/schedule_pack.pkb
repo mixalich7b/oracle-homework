@@ -1,6 +1,8 @@
 create or replace package body schedule_pack
 is
 
+  e_not_valid_day_of_month exception;
+
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
   type t_schedule is record  (
@@ -64,7 +66,7 @@ is
   -- находит ближайшую дату относительно заданной
   -- день которой будет находиться в расписании
   -- с учетом ограничения по дням месяца и дням недели
-  function find_day(v_from in date, p_schedule in  t_schedule)
+  function find_day(v_from in date, p_schedule in t_schedule)
     return date
   is
     v_current_day number;
@@ -76,14 +78,14 @@ is
         return v_date;
       else
         -- если текущий день не подходит под расписание, то начинаем искать следующий
-        return find_next_day(v_current_day, p_schedule);
+        return find_next_day(v_date, p_schedule);
       end if;
     else
-      return find_next_day(v_current_day, p_schedule);
+      return find_next_day(v_date, p_schedule);
     end if;
   end;
 
-  function find_next_day(v_from in number, p_schedule in t_schedule)
+  function find_next_day(v_from in date, p_schedule in t_schedule)
     return date 
   is
   begin
@@ -103,6 +105,14 @@ is
         -- ведь проверка на день недели происходит в find_day
         return find_day(v_date);
     end if;
+  exception
+    -- если подходящий день не существует в текущем месяце
+    -- то переходим к следующему месяцу
+    when e_not_valid_day_of_month then
+      v_current_month := extract_month(v_date);
+      v_date := start_of_month(v_current_month+1, v_date);
+      v_date := find_month(v_date, p_schedule);
+      return find_day(v_date);
   end;
 
   -- находит ближайшую дату относительно заданной
@@ -110,6 +120,8 @@ is
   function find_hour(v_from in date, p_schedule in t_schedule)
     return date
   is
+    v_date date;
+    v_current_hour number;
   begin
     v_date := v_from;
     v_current_hour := extract_hour(v_date);
@@ -120,12 +132,10 @@ is
       -- иначе ищем следующий по расписанию
       v_current_hour := next_hour(v_current_hour, p_schedule);
       if v_current_hour == -1 then
-        v_current_day := extract_day(v_date);
         -- возможно он будет уже в следующем дне
-        v_date := start_of_day(v_current_day + 1);
-        v_date := find_day(v_date, p_schedule);
+        v_date := find_next_day(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего дня
-        return find_hour(v_date);
+        return find_hour(v_date, p_schedule);
       else
         return start_of_hour(v_current_hour, v_date);
       end if;
@@ -134,11 +144,13 @@ is
 
   -- находит ближайшую дату относительно заданной
   -- минута в которой будет находится в расписании
-  function find_minute(v_from in date, p_schedule in t_schedule)
+  function find_minute(p_from in date, p_schedule in t_schedule)
     return date
   is
+    v_date date;
+    v_next_minute number;
   begin
-    v_date := v_from;
+    v_date := p_from;
     -- текущую минуту не берём, так как она уже началась
     -- считаем, что ближайший запуск должен быть в 00 секунд
     v_next_minute := extract_next_minute(v_date);
@@ -163,13 +175,13 @@ is
   
   -- находит следующий ближайший месяц по расписанию
   -- возвращает номер месяца либо -1 если больше подходящих месяцев в году нет
-  function next_month(v_current_month in number, p_schedule in t_schedule)
+  function next_month(p_current_month in number, p_schedule in t_schedule)
     return number
   is
   begin
-    for idx in p_schedule.months(v_current_month) .. p_schedule.months.last
+    for idx in p_schedule.months(p_current_month) .. p_schedule.months.last
     loop
-      if idx > v_current_month then
+      if idx > p_current_month then
         if p_schedule.months(idx) == 1 then
           return p_schedule.months(idx);
         end if;
@@ -181,13 +193,13 @@ is
 
   -- находит следующий ближайший день по расписанию
   -- возвращает номер дня либо -1 если больше подходящих дней в месяце нет
-  function next_day(v_current_day in number, p_schedule in t_schedule)
+  function next_day(p_current_day in number, p_schedule in t_schedule)
     return  number
   is
   begin
-    for idx in p_schedule.days(v_current_day) .. p_schedule.days.last
+    for idx in p_schedule.days(p_current_day) .. p_schedule.days.last
     loop
-      if idx > v_current_day then
+      if idx > p_current_day then
         if p_schedule.days(idx) == 1 then
           return p_schedule.days(idx);
         end if;
@@ -197,13 +209,13 @@ is
     return -1;
   end;
 
-  function next_hour(v_current_hour in number, p_schedule in t_schedule)
+  function next_hour(p_current_hour in number, p_schedule in t_schedule)
     return number
   is
   begin
-    for idx in p_schedule.hours(v_current_hour) .. p_schedule.hours.last
+    for idx in p_schedule.hours(p_current_hour) .. p_schedule.hours.last
     loop
-      if idx > v_current_hour then
+      if idx > p_current_hour then
         if p_schedule.hours(idx) == 1 then
           return p_schedule.hours(idx);
         end if;
@@ -213,13 +225,13 @@ is
     return -1;
   end;
 
-  function next_minute(v_current_minute in number, p_schedule in t_schedule)
+  function next_minute(p_current_minute in number, p_schedule in t_schedule)
     return number
   is
   begin
-    for idx in p_schedule.minutes(v_current_minute) .. p_schedule.minutes.last
+    for idx in p_schedule.minutes(p_current_minute) .. p_schedule.minutes.last
     loop
-      if idx > v_current_minute then
+      if idx > p_current_minute then
         if p_schedule.minutes(idx) == 1 then
           return p_schedule.minutes(idx);
         end if;
@@ -230,42 +242,73 @@ is
   end;
 
   -- возвращает дату соответствующую началу указанного года
-  function start_of_year(v_year in number)
+  function start_of_year(p_year in number)
     return date
   is
   begin
-
+    return to_date(p_year || '0101', 'YYYYMMDD');
   end;
 
-  -- возвращает дату соответствующую началу указанного месяца v_month
-  -- год при этом берётся из v_date
-  function start_of_month(v_month in number, v_date in date)
+  -- возвращает дату соответствующую началу указанного месяца p_month
+  -- не изменяя год
+  function start_of_month(p_month in number, p_date in date)
     return date
   is
+    v_current_year number;
   begin
-
+    v_current_year := extract_year(p_date);
+    return to_date(v_current_year || p_month || '01', 'YYYYMMDD');
   end;
 
-  -- возвращает дату соответствующую началу указанного дня
-  function start_of_day(v_day in number, v_date in date)
+  -- возвращает дату соответствующую началу указанного дня,
+  -- не изменяя год и месяц
+  -- если заданный день не существует в этом месяце,
+  -- то будет  выброшено исключение e_not_valid_day_of_month
+  function start_of_day(p_day in number, p_date in date)
     return date
   is
-  begin
+    v_current_year number;
+    v_current_month number;
 
+    e_not_valid_date_for_month exception;
+    pragma_exception_init(e_not_valid_date_for_month, -01839);    
+  begin
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    return to_date(v_current_year || v_current_month || p_day, 'YYYYMMDD');
+  exception
+    when e_not_valid_date_for_month then
+      raise e_not_valid_day_of_month;
   end;
 
-  function start_of_hour(v_hour in number, v_date in date)
+  function start_of_hour(p_hour in number, p_date in date)
     returns date
   is
+    v_current_year number;
+    v_current_month number;
+    v_current_day number;
   begin
-
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    v_current_day := extract_day(p_date);
+    return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
+  exception
   end;
 
-  function start_of_minute(v_minute in number, v_date in date)
+  function start_of_minute(p_minute in number, p_date in date)
     returns date
   is
+    v_current_year number;
+    v_current_month number;
+    v_current_day number;
+    v_current_hour number;
   begin
-
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    v_current_day := extract_day(p_date);
+    v_current_hour := extract_hour(p_date);
+    return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
+  exception
   end;
 
   function extract_year(v_date in date)
