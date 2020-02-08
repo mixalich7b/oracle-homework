@@ -3,11 +3,11 @@ is
 
   e_not_valid_day_of_month exception;
 
-  type t_minutes is varray(60) of number(2, 0);
-  type t_hours is varray(24) of number(2, 0);
-  type t_weekdays is varray(7) of number(1, 0);
-  type t_days is varray(31) of number(2, 0);
-  type t_month is varray(12) of number(2, 0);
+  type t_minutes is table of number(2, 0);
+  type t_hours is table of number(2, 0);
+  type t_weekdays is table of number(1, 0);
+  type t_days is table of number(2, 0);
+  type t_month is table of number(2, 0);
 
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
