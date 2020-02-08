@@ -12,9 +12,9 @@ is
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
   type t_schedule is record  (
-  	-- если минута есть в расписании, то по её номеру будет находится 1; иначе - 0
+    -- если минута есть в расписании, то её номер будет в коллекции
     minutes t_minutes,
-    -- если месяц есть в расписании, то по его номеру будет находится 1; иначе - 0
+    -- если месяц есть в расписании, то его номер будет в коллекции
     hours t_hours,
     -- и тд
     weekdays t_weekdays,
@@ -62,7 +62,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.months(p_month) = 1 then
+    if p_month member of p_schedule.months then
       return TRUE;
     else
       return FALSE;
@@ -73,7 +73,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.days(p_day_of_month) = 1 then
+    if p_day_of_month member of p_schedule.days then
       return TRUE;
     else
       return FALSE;
@@ -84,7 +84,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.weekdays(p_day_of_week) = 1 then
+    if p_day_of_week member of p_schedule.weekdays then
       return TRUE;
     else
       return FALSE;
@@ -95,7 +95,7 @@ is
     return boolean
   is
   begin
-    if p_schedule.hours(p_hour) = 1 then
+    if p_hour member of p_schedule.hours then
       return TRUE;
     else
       return FALSE;
@@ -106,11 +106,75 @@ is
     return boolean
   is
   begin
-    if p_schedule.minutes(p_minute) = 1 then
+    if p_minute member of p_schedule.minutes then
       return TRUE;
     else
       return FALSE;
     end if;
+  end;
+
+  -- находит следующий ближайший месяц по расписанию
+  -- возвращает номер месяца либо -1 если больше подходящих месяцев в расписании нет
+  function next_month(p_current_month in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.months.first .. p_schedule.months.last
+    loop
+      if p_schedule.months(idx) > p_current_month then
+        return p_schedule.months(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  -- находит следующий ближайший день по расписанию
+  -- возвращает номер дня либо -1 если больше подходящих дней в расписании нет
+  function next_day(p_current_day in number, p_schedule in t_schedule)
+    return  number
+  is
+  begin
+    for idx in p_schedule.days.first .. p_schedule.days.last
+    loop
+      if p_schedule.days(idx) > p_current_day then
+        return p_schedule.days(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  -- находит следующий ближайший час по расписанию
+  -- возвращает номер часа либо -1 если больше подходящих часов в расписании нет
+  function next_hour(p_current_hour in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.hours.first .. p_schedule.hours.last
+    loop
+      if p_schedule.hours(idx) > p_current_hour then
+        return p_schedule.hours(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  -- находит следующую ближайшую минуту по расписанию
+  -- возвращает номер минуты либо -1 если больше подходящих минут в расписании нет
+  function next_minute(p_current_minute in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.minutes.first .. p_schedule.minutes.last
+    loop
+      if p_schedule.minutes(idx) > p_current_minute then
+        return p_schedule.minutes(idx);
+      end if;
+    end loop;
+
+    return -1;
   end;
 
   -- возвращает дату соответствующую началу указанного года
@@ -179,74 +243,6 @@ is
     v_current_day := extract_day(p_date);
     v_current_hour := extract_hour(p_date);
     return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
-  end;
-
-  -- находит следующий ближайший месяц по расписанию
-  -- возвращает номер месяца либо -1 если больше подходящих месяцев в году нет
-  function next_month(p_current_month in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.months(p_current_month) .. p_schedule.months.last
-    loop
-      if idx > p_current_month then
-        if p_schedule.months(idx) = 1 then
-          return p_schedule.months(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  -- находит следующий ближайший день по расписанию
-  -- возвращает номер дня либо -1 если больше подходящих дней в месяце нет
-  function next_day(p_current_day in number, p_schedule in t_schedule)
-    return  number
-  is
-  begin
-    for idx in p_schedule.days(p_current_day) .. p_schedule.days.last
-    loop
-      if idx > p_current_day then
-        if p_schedule.days(idx) = 1 then
-          return p_schedule.days(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  function next_hour(p_current_hour in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.hours(p_current_hour) .. p_schedule.hours.last
-    loop
-      if idx > p_current_hour then
-        if p_schedule.hours(idx) = 1 then
-          return p_schedule.hours(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  function next_minute(p_current_minute in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.minutes(p_current_minute) .. p_schedule.minutes.last
-    loop
-      if idx > p_current_minute then
-        if p_schedule.minutes(idx) = 1 then
-          return p_schedule.minutes(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
   end;
 
   -- находит ближайшую дату относительно заданной
@@ -325,6 +321,7 @@ is
     if v_current_day = -1 then
       v_current_month := extract_month(v_date);
       -- возможно он будет уже в следующем месяце
+      dbms_output.put_line('Move to month: ' || (v_current_month+1) || ' at date: '|| v_date);
       v_date := start_of_month(v_current_month+1, v_date);
       v_date := find_month(v_date, p_schedule);
       -- рекурсивно продолжаем со следующего месяца
