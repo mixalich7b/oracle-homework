@@ -63,9 +63,9 @@ is
   is
   begin
     if p_schedule.months(p_month) = 1 then
-      return 1;
+      return TRUE;
     else
-      return 0;
+      return FALSE;
     end if;
   end;
 
@@ -74,9 +74,9 @@ is
   is
   begin
     if p_schedule.days(p_day_of_month) = 1 then
-      return 1;
+      return TRUE;
     else
-      return 0;
+      return FALSE;
     end if;
   end;
 
@@ -87,9 +87,9 @@ is
   begin
     v_day_of_week := to_number(to_char(p_date, 'd'));
     if p_schedule.weekdays(v_day_of_week) = 1 then
-      return 1;
+      return TRUE;
     else
-      return 0;
+      return FALSE;
     end if;
   end;
 
@@ -98,9 +98,9 @@ is
   is
   begin
     if p_schedule.hours(p_hour) = 1 then
-      return 1;
+      return TRUE;
     else
-      return 0;
+      return FALSE;
     end if;
   end;
 
@@ -109,10 +109,146 @@ is
   is
   begin
     if p_schedule.minutes(p_minute) = 1 then
-      return 1;
+      return TRUE;
     else
-      return 0;
+      return FALSE;
     end if;
+  end;
+
+  -- возвращает дату соответствующую началу указанного года
+  function start_of_year(p_year in number)
+    return date
+  is
+  begin
+    return to_date(p_year || '0101', 'YYYYMMDD');
+  end;
+
+  -- возвращает дату соответствующую началу указанного месяца p_month
+  -- не изменяя год
+  function start_of_month(p_month in number, p_date in date)
+    return date
+  is
+    v_current_year number;
+  begin
+    v_current_year := extract_year(p_date);
+    return to_date(v_current_year || p_month || '01', 'YYYYMMDD');
+  end;
+
+  -- возвращает дату соответствующую началу указанного дня,
+  -- не изменяя год и месяц
+  -- если заданный день не существует в этом месяце,
+  -- то будет  выброшено исключение e_not_valid_day_of_month
+  function start_of_day(p_day in number, p_date in date)
+    return date
+  is
+    v_current_year number;
+    v_current_month number;
+
+    e_not_valid_date_for_month exception;
+    pragma exception_init(e_not_valid_date_for_month, -01839);
+  begin
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    return to_date(v_current_year || v_current_month || p_day, 'YYYYMMDD');
+  exception
+    when e_not_valid_date_for_month then
+      raise e_not_valid_day_of_month;
+  end;
+
+  function start_of_hour(p_hour in number, p_date in date)
+    return date
+  is
+    v_current_year number;
+    v_current_month number;
+    v_current_day number;
+  begin
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    v_current_day := extract_day(p_date);
+    return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
+  end;
+
+  function start_of_minute(p_minute in number, p_date in date)
+    return date
+  is
+    v_current_year number;
+    v_current_month number;
+    v_current_day number;
+    v_current_hour number;
+  begin
+    v_current_year := extract_year(p_date);
+    v_current_month := extract_month(p_date);
+    v_current_day := extract_day(p_date);
+    v_current_hour := extract_hour(p_date);
+    return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
+  end;
+
+  -- находит следующий ближайший месяц по расписанию
+  -- возвращает номер месяца либо -1 если больше подходящих месяцев в году нет
+  function next_month(p_current_month in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.months(p_current_month) .. p_schedule.months.last
+    loop
+      if idx > p_current_month then
+        if p_schedule.months(idx) = 1 then
+          return p_schedule.months(idx);
+        end if;
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  -- находит следующий ближайший день по расписанию
+  -- возвращает номер дня либо -1 если больше подходящих дней в месяце нет
+  function next_day(p_current_day in number, p_schedule in t_schedule)
+    return  number
+  is
+  begin
+    for idx in p_schedule.days(p_current_day) .. p_schedule.days.last
+    loop
+      if idx > p_current_day then
+        if p_schedule.days(idx) = 1 then
+          return p_schedule.days(idx);
+        end if;
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  function next_hour(p_current_hour in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.hours(p_current_hour) .. p_schedule.hours.last
+    loop
+      if idx > p_current_hour then
+        if p_schedule.hours(idx) = 1 then
+          return p_schedule.hours(idx);
+        end if;
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  function next_minute(p_current_minute in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.minutes(p_current_minute) .. p_schedule.minutes.last
+    loop
+      if idx > p_current_minute then
+        if p_schedule.minutes(idx) = 1 then
+          return p_schedule.minutes(idx);
+        end if;
+      end if;
+    end loop;
+
+    return -1;
   end;
 
   -- находит ближайшую дату относительно заданной
@@ -256,142 +392,6 @@ is
         return start_of_minute(v_next_minute, v_date);
       end if;
     end if;
-  end;
-  
-  -- находит следующий ближайший месяц по расписанию
-  -- возвращает номер месяца либо -1 если больше подходящих месяцев в году нет
-  function next_month(p_current_month in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.months(p_current_month) .. p_schedule.months.last
-    loop
-      if idx > p_current_month then
-        if p_schedule.months(idx) = 1 then
-          return p_schedule.months(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  -- находит следующий ближайший день по расписанию
-  -- возвращает номер дня либо -1 если больше подходящих дней в месяце нет
-  function next_day(p_current_day in number, p_schedule in t_schedule)
-    return  number
-  is
-  begin
-    for idx in p_schedule.days(p_current_day) .. p_schedule.days.last
-    loop
-      if idx > p_current_day then
-        if p_schedule.days(idx) = 1 then
-          return p_schedule.days(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  function next_hour(p_current_hour in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.hours(p_current_hour) .. p_schedule.hours.last
-    loop
-      if idx > p_current_hour then
-        if p_schedule.hours(idx) = 1 then
-          return p_schedule.hours(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  function next_minute(p_current_minute in number, p_schedule in t_schedule)
-    return number
-  is
-  begin
-    for idx in p_schedule.minutes(p_current_minute) .. p_schedule.minutes.last
-    loop
-      if idx > p_current_minute then
-        if p_schedule.minutes(idx) = 1 then
-          return p_schedule.minutes(idx);
-        end if;
-      end if;
-    end loop;
-
-    return -1;
-  end;
-
-  -- возвращает дату соответствующую началу указанного года
-  function start_of_year(p_year in number)
-    return date
-  is
-  begin
-    return to_date(p_year || '0101', 'YYYYMMDD');
-  end;
-
-  -- возвращает дату соответствующую началу указанного месяца p_month
-  -- не изменяя год
-  function start_of_month(p_month in number, p_date in date)
-    return date
-  is
-    v_current_year number;
-  begin
-    v_current_year := extract_year(p_date);
-    return to_date(v_current_year || p_month || '01', 'YYYYMMDD');
-  end;
-
-  -- возвращает дату соответствующую началу указанного дня,
-  -- не изменяя год и месяц
-  -- если заданный день не существует в этом месяце,
-  -- то будет  выброшено исключение e_not_valid_day_of_month
-  function start_of_day(p_day in number, p_date in date)
-    return date
-  is
-    v_current_year number;
-    v_current_month number;
-
-    e_not_valid_date_for_month exception;
-    pragma exception_init(e_not_valid_date_for_month, -01839);
-  begin
-    v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
-    return to_date(v_current_year || v_current_month || p_day, 'YYYYMMDD');
-  exception
-    when e_not_valid_date_for_month then
-      raise e_not_valid_day_of_month;
-  end;
-
-  function start_of_hour(p_hour in number, p_date in date)
-    return date
-  is
-    v_current_year number;
-    v_current_month number;
-    v_current_day number;
-  begin
-    v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
-    v_current_day := extract_day(p_date);
-    return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
-  end;
-
-  function start_of_minute(p_minute in number, p_date in date)
-    return date
-  is
-    v_current_year number;
-    v_current_month number;
-    v_current_day number;
-    v_current_hour number;
-  begin
-    v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
-    v_current_day := extract_day(p_date);
-    v_current_hour := extract_hour(p_date);
-    return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
   end;
 
   function parse_minutes(p_schedule_raw in varchar2)
