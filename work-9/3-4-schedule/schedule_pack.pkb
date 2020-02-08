@@ -285,7 +285,7 @@ is
     v_current_month number;
 
     e_not_valid_date_for_month exception;
-    pragma_exception_init(e_not_valid_date_for_month, -01839);    
+    pragma exception_init(e_not_valid_date_for_month, -01839);
   begin
     v_current_year := extract_year(p_date);
     v_current_month := extract_month(p_date);
@@ -296,7 +296,7 @@ is
   end;
 
   function start_of_hour(p_hour in number, p_date in date)
-    returns date
+    return date
   is
     v_current_year number;
     v_current_month number;
@@ -306,11 +306,10 @@ is
     v_current_month := extract_month(p_date);
     v_current_day := extract_day(p_date);
     return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
-  exception
   end;
 
   function start_of_minute(p_minute in number, p_date in date)
-    returns date
+    return date
   is
     v_current_year number;
     v_current_month number;
@@ -322,7 +321,6 @@ is
     v_current_day := extract_day(p_date);
     v_current_hour := extract_hour(p_date);
     return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
-  exception
   end;
 
   function extract_year(p_date in date)
@@ -347,14 +345,14 @@ is
   end;
 
   function extract_hour(p_date in date)
-    returns number
+    return number
   is
   begin
     return extract(hour from cast(p_date as timestamp));
   end;
 
   function extract_next_minute(p_date in date)
-    returns number
+    return number
   is
   begin
     return extract(minute from cast(p_date+1/24/60 as timestamp));
