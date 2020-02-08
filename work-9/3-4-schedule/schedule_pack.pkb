@@ -262,7 +262,7 @@ is
     v_current_month := extract_month(v_date);
     -- если текущий месяц есть в расписании - оставляем его
     if contains_month(v_current_month, p_schedule) then
-      dbms_output.put_line('Found month at date: ' || v_date)
+      dbms_output.put_line('Found month at date: ' || v_date);
       return v_date;
     else
       -- иначе ищем следующий по расписанию
@@ -270,11 +270,11 @@ is
       if v_current_month = -1 then
         v_current_year := extract_year(v_date);
         -- возможно он будет уже в следующем году
-        dbms_output.put_line('Move to year: ' || v_current_year+1  || ' at date: '|| v_date)
+        dbms_output.put_line('Move to year: ' || (v_current_year+1)  || ' at date: ' || v_date);
         v_date := start_of_year(v_current_year + 1);
         return find_month(v_date, p_schedule);
       else
-        dbms_output.put_line('Move to month: ' || v_current_month || ' at date: '|| v_date)
+        dbms_output.put_line('Move to month: ' || v_current_month || ' at date: '|| v_date);
         return start_of_month(v_current_month, v_date);
       end if;
     end if;
@@ -298,7 +298,7 @@ is
     if contains_day_of_month(v_current_day, p_schedule) then
       v_day_of_week := to_number(to_char(v_date, 'd'));
       if contains_day_of_week(v_day_of_week, p_schedule) then
-        dbms_output.put_line('Found day at date: ' || v_date)
+        dbms_output.put_line('Found day at date: ' || v_date);
         return v_date;
       else
         -- если текущий день не подходит под расписание, то начинаем искать следующий
@@ -330,7 +330,7 @@ is
       -- рекурсивно продолжаем со следующего месяца
       return find_day(v_date, p_schedule);
     else
-      dbms_output.put_line('Move to day: ' || v_current_day || ' at date: '|| v_date)
+      dbms_output.put_line('Move to day: ' || v_current_day || ' at date: '|| v_date);
       v_date := start_of_day(v_current_day, v_date);
       -- рекурсивно продолжаем со следующего дня
       -- ведь проверка на день недели происходит в find_day
@@ -341,7 +341,7 @@ is
     -- то переходим к следующему месяцу
     when e_not_valid_day_of_month then
       v_current_month := extract_month(v_date);
-      dbms_output.put_line('Move to month: ' || v_current_month+1 || ' at date: '|| v_date)
+      dbms_output.put_line('Move to month: ' || (v_current_month+1) || ' at date: '|| v_date);
       v_date := start_of_month(v_current_month+1, v_date);
       v_date := find_month(v_date, p_schedule);
       return find_day(v_date, p_schedule);
@@ -359,7 +359,7 @@ is
     v_current_hour := extract_hour(v_date);
     -- если текущий час есть в расписании - оставляем его
     if contains_hour(v_current_hour, p_schedule) then
-      dbms_output.put_line('Found hour at date: ' || v_date)
+      dbms_output.put_line('Found hour at date: ' || v_date);
       return v_date;
     else
       -- иначе ищем следующий по расписанию
@@ -370,7 +370,7 @@ is
         -- рекурсивно продолжаем со следующего дня
         return find_hour(v_date, p_schedule);
       else
-        dbms_output.put_line('Move to hour: ' || v_current_hour || ' at date: '|| v_date)
+        dbms_output.put_line('Move to hour: ' || v_current_hour || ' at date: '|| v_date);
         return start_of_hour(v_current_hour, v_date);
       end if;
     end if;
@@ -391,7 +391,7 @@ is
     v_next_minute := extract_next_minute(v_date);
     -- если ближайшая минута есть в расписании - оставляем её
     if contains_minute(v_next_minute, p_schedule) then
-      dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date)
+      dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date);
       return start_of_minute(v_next_minute, v_date);
     else
       -- иначе ищем следующую по расписанию
@@ -399,13 +399,13 @@ is
       if v_next_minute = -1 then
         v_current_hour := extract_hour(v_date);
         -- возможно она будет уже в следующем часе
-        dbms_output.put_line('Move to hour: ' || v_current_hour+1 || ' at date: '|| v_date)
+        dbms_output.put_line('Move to hour: ' || (v_current_hour+1) || ' at date: '|| v_date);
         v_date := start_of_hour(v_current_hour + 1, v_date);
         v_date := find_hour(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего часа
         return find_minute(v_date, p_schedule);
       else
-        dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date)
+        dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date);
         return start_of_minute(v_next_minute, v_date);
       end if;
     end if;
