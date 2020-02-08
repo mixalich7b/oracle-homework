@@ -50,11 +50,27 @@ is
     return extract(hour from cast(p_date as timestamp));
   end;
 
-  function extract_next_minute(p_date in date)
+  -- возвращает ближайшую круглую минуту в рамках текущего часа
+  -- возвращает -1 если такой минуты в рамках текущего часа нет (например в 15:59:01)
+  function extract_nearest_minute(p_date in date)
     return number
   is
+    v_nearest_minute number;
+    v_timestamp timestamp;
   begin
-    return extract(minute from cast(p_date+1/24/60 as timestamp));
+    v_timestamp := cast(p_date as timestamp);
+    -- текущую минуту не берём, если она уже началась
+    -- считаем, что ближайший запуск должен быть в 00 секунд
+    if extract (second from v_timestamp) = 0 then
+      return extract(minute from v_timestamp);
+    end if;
+    v_nearest_minute := extract(minute from cast(v_timestamp+1/24/60 as timestamp));
+    -- получим 0, если ближайшая минута будет уже в следующем часе
+    if v_nearest_minute = 0 then
+      return -1;
+    else
+      return v_nearest_minute;
+    end if;
   end;
 
   -- проверяет, есть ли  месяц в расписании
@@ -191,9 +207,11 @@ is
     return date
   is
     v_current_year number;
+    v_current_month number;
   begin
     v_current_year := extract_year(p_date);
-    return to_date(v_current_year || p_month || '01', 'YYYYMMDD');
+    v_current_month := extract_month(p_date);
+    return trunc(add_months(p_date, p_month-v_current_month), 'MM');
   end;
 
   -- возвращает дату соответствующую началу указанного дня,
@@ -204,13 +222,13 @@ is
     return date
   is
     v_current_year number;
-    v_current_month number;
+    v_current_month varchar2(2 char);
 
     e_not_valid_date_for_month exception;
     pragma exception_init(e_not_valid_date_for_month, -01839);
   begin
     v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
+    v_current_month := to_char(p_date, 'MM');
     return to_date(v_current_year || v_current_month || p_day, 'YYYYMMDD');
   exception
     when e_not_valid_date_for_month then
@@ -221,12 +239,12 @@ is
     return date
   is
     v_current_year number;
-    v_current_month number;
-    v_current_day number;
+    v_current_month varchar2(2 char);
+    v_current_day varchar2(2 char);
   begin
     v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
-    v_current_day := extract_day(p_date);
+    v_current_month := to_char(p_date, 'MM');
+    v_current_day := to_char(p_date, 'DD');
     return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
   end;
 
@@ -234,14 +252,14 @@ is
     return date
   is
     v_current_year number;
-    v_current_month number;
-    v_current_day number;
-    v_current_hour number;
+    v_current_month varchar2(2 char);
+    v_current_day varchar2(2 char);
+    v_current_hour varchar2(2 char);
   begin
     v_current_year := extract_year(p_date);
-    v_current_month := extract_month(p_date);
-    v_current_day := extract_day(p_date);
-    v_current_hour := extract_hour(p_date);
+    v_current_month := to_char(p_date, 'MM');
+    v_current_day := to_char(p_date, 'DD');
+    v_current_hour := to_char(p_date, 'HH24');
     return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
   end;
 
@@ -379,21 +397,19 @@ is
     return date
   is
     v_date date;
-    v_next_minute number;
     v_current_hour number;
+    v_current_minute number;
   begin
     v_date := p_from;
-    -- текущую минуту не берём, так как она уже началась
-    -- считаем, что ближайший запуск должен быть в 00 секунд
-    v_next_minute := extract_next_minute(v_date);
+    v_current_minute := extract_nearest_minute(v_date);
     -- если ближайшая минута есть в расписании - оставляем её
-    if contains_minute(v_next_minute, p_schedule) then
-      dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date);
-      return start_of_minute(v_next_minute, v_date);
+    if contains_minute(v_current_minute, p_schedule) then
+      dbms_output.put_line('Move to minute: ' || v_current_minute || ' at date: '|| v_date);
+      return start_of_minute(v_current_minute, v_date);
     else
       -- иначе ищем следующую по расписанию
-      v_next_minute := next_minute(v_next_minute, p_schedule);
-      if v_next_minute = -1 then
+      v_current_minute := next_minute(v_current_minute, p_schedule);
+      if v_current_minute = -1 then
         v_current_hour := extract_hour(v_date);
         -- возможно она будет уже в следующем часе
         dbms_output.put_line('Move to hour: ' || (v_current_hour+1) || ' at date: '|| v_date);
@@ -402,8 +418,8 @@ is
         -- рекурсивно продолжаем со следующего часа
         return find_minute(v_date, p_schedule);
       else
-        dbms_output.put_line('Move to minute: ' || v_next_minute || ' at date: '|| v_date);
-        return start_of_minute(v_next_minute, v_date);
+        dbms_output.put_line('Move to minute: ' || v_current_minute || ' at date: '|| v_date);
+        return start_of_minute(v_current_minute, v_date);
       end if;
     end if;
   end;
