@@ -3,6 +3,8 @@ is
 
   e_not_valid_day_of_month exception;
 
+  type t_numbers is table of number(2, 0);
+
   type t_minutes is table of number(2, 0);
   type t_hours is table of number(2, 0);
   type t_weekdays is table of number(1, 0);
@@ -425,9 +427,8 @@ is
   end;
 
   function parse_numbers(p_numbers_raw in varchar2)
-    return table of number
+    return t_numbers
   is
-    type t_numbers is table of number(2);
     v_numbers t_numbers;
     -- v_idx pls_integer;
   begin
