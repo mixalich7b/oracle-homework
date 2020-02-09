@@ -434,10 +434,10 @@ is
       -- v_numbers(idx) := regexp_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1);
       -- v_idx := v_idx + 1;
     -- end loop;
-    select distinct regexp_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) n
+    select distinct cast(regexp_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) as number(2, 0)) n
       bulk collect into v_numbers
     from dual
-    connect by regexp_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) > 0
+    connect by regexp_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 0, 'x', 1) > 0
     order by n;
 
     return v_numbers;
