@@ -5,23 +5,17 @@ is
 
   type t_numbers is table of number(2, 0);
 
-  type t_minutes is table of number(2, 0);
-  type t_hours is table of number(2, 0);
-  type t_weekdays is table of number(1, 0);
-  type t_days is table of number(2, 0);
-  type t_months is table of number(2, 0);
-
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
   type t_schedule is record  (
     -- если минута есть в расписании, то её номер будет в коллекции
-    minutes t_minutes,
+    minutes t_numbers,
     -- если месяц есть в расписании, то его номер будет в коллекции
-    hours t_hours,
+    hours t_numbers,
     -- и тд
-    weekdays t_weekdays,
-    days t_days,
-    months t_months
+    weekdays t_numbers,
+    days t_numbers,
+    months t_numbers
   );
 
   function extract_year(p_date in date)
@@ -434,27 +428,27 @@ is
   begin
     -- v_numbers := t_numbers();
     -- v_idx := 1;
-    -- while regex_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, v_idx, 'x', 1) > 0
+    -- while regexp_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, v_idx, 'x', 1) > 0
     -- loop
       -- v_numbers.extend(1);
-      -- v_numbers(idx) := regex_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1);
+      -- v_numbers(idx) := regexp_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1);
       -- v_idx := v_idx + 1;
     -- end loop;
-    select distinct regex_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) n
+    select distinct regexp_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) n
       bulk collect into v_numbers
     from dual
-    connect by regex_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) > 0
+    connect by regexp_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) > 0
     order by n;
 
     return v_numbers;
   end;
 
   function parse_minutes(p_minutes_raw in varchar2)
-    return t_minutes
+    return t_numbers
   is
-    v_minutes t_minutes;
+    v_minutes t_numbers;
   begin
-    v_minutes := cast(parse_numbers(p_minutes_raw) as t_minutes);
+    v_minutes := parse_numbers(p_minutes_raw);
     for idx in v_minutes.first .. v_minutes.last
     loop
       if v_minutes(idx) NOT IN (0, 15, 30, 45) then
@@ -465,11 +459,11 @@ is
   end;
 
   function parse_hours(p_hours_raw in varchar2)
-    return t_hours
+    return t_numbers
   is
-    v_hours t_hours;
+    v_hours t_numbers;
   begin
-    v_hours := cast(parse_numbers(p_hours_raw) as t_hours);
+    v_hours := parse_numbers(p_hours_raw);
     for idx in v_hours.first .. v_hours.last
     loop
       if v_hours(idx) > 23 OR v_hours(idx) < 0 then
@@ -480,11 +474,11 @@ is
   end;
 
   function parse_weekdays(p_weekdays_raw in varchar2)
-    return t_weekdays
+    return t_numbers
   is
-    v_weekdays t_weekdays;
+    v_weekdays t_numbers;
   begin
-    v_weekdays := cast(parse_numbers(p_weekdays_raw) as t_weekdays);
+    v_weekdays := parse_numbers(p_weekdays_raw);
     for idx in v_weekdays.first .. v_weekdays.last
     loop
       if v_weekdays(idx) > 7 OR v_weekdays(idx) < 1 then
@@ -495,11 +489,11 @@ is
   end;
 
   function parse_days(p_days_raw in varchar2)
-    return t_days
+    return t_numbers
   is
-    v_days t_days;
+    v_days t_numbers;
   begin
-    v_days := cast(parse_numbers(p_days_raw) as t_days);
+    v_days := parse_numbers(p_days_raw);
     for idx in v_days.first .. v_days.last
     loop
       if v_days(idx) > 31 OR v_days(idx) < 1 then
@@ -510,11 +504,11 @@ is
   end;
 
   function parse_months(p_months_raw in varchar2)
-    return t_months
+    return t_numbers
   is
-    v_months t_months;
+    v_months t_numbers;
   begin
-    v_months := cast(parse_numbers(p_months_raw) as t_months);
+    v_months := parse_numbers(p_months_raw);
     for idx in v_months.first .. v_months.last
     loop
       if v_months(idx) > 12 OR v_months(idx) < 1 then
@@ -524,27 +518,31 @@ is
     return v_months;
   end;
 
-  function find_max_possible_day(p_months t_months)
+  function find_max_possible_day(p_months t_numbers)
     return number
   is
-    v_max_day number := 0;
+    v_max_day number(2, 0) := 0;
+    v_day number(2, 0);
   begin
     for idx in p_months.first .. p_months.last
     loop
-      v_max_day := case p_months(idx)
-       when 1 then max(v_max_day, 31)
-       when 2 then max(v_max_day, 29)
-       when 3 then max(v_max_day, 31)
-       when 4 then max(v_max_day, 30)
-       when 5 then max(v_max_day, 31)
-       when 6 then max(v_max_day, 30)
-       when 7 then max(v_max_day, 31)
-       when 8 then max(v_max_day, 31)
-       when 9 then max(v_max_day, 30)
-       when 10 then max(v_max_day, 31)
-       when 11 then max(v_max_day, 30)
-       when 12 then max(v_max_day, 31)
+      v_day := case p_months(idx)
+       when 1 then 31
+       when 2 then 29
+       when 3 then 31
+       when 4 then 30
+       when 5 then 31
+       when 6 then 30
+       when 7 then 31
+       when 8 then 31
+       when 9 then 30
+       when 10 then 31
+       when 11 then 30
+       when 12 then 31
       end;
+      if v_day > v_max_day then
+        v_max_day := v_day;
+      end if;
     end loop;
     return v_max_day;
   end;
@@ -559,13 +557,17 @@ is
     v_weekdays_raw varchar2(20 char);
     v_days_raw varchar2(100 char);
     v_months_raw varchar2(50 char);
+
+    v_max_possible_day number(2, 0);
+    v_min_day_in_schedule number(2, 0);
+
     v_schedule t_schedule;
   begin
-    v_minutes_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 1, 'x');
-    v_hours_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 2, 'x');
-    v_weekdays_raw := regex_substr(p_schedule_raw, '([0-9],?)+;', 1, 3, 'x');
-    v_days_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 4, 'x');
-    v_months_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 5, 'x');
+    v_minutes_raw := regexp_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 1, 'x');
+    v_hours_raw := regexp_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 2, 'x');
+    v_weekdays_raw := regexp_substr(p_schedule_raw, '([0-9],?)+;', 1, 3, 'x');
+    v_days_raw := regexp_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 4, 'x');
+    v_months_raw := regexp_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 5, 'x');
 
     v_schedule := t_schedule(
       parse_minutes(v_minutes_raw),
