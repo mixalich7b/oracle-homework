@@ -40,6 +40,7 @@ is
     end if;
   end;
 
+  -- извлекает номер года из даты
   function extract_year(p_date in date)
     return number
   is
@@ -47,6 +48,7 @@ is
     return extract(year from p_date);
   end;
 
+  -- извлекает номер месяца из даты
   function extract_month(p_date in date)
     return number
   is
@@ -54,6 +56,15 @@ is
     return extract(month from p_date);
   end;
 
+  -- извлекает номер дня недели из даты
+  function extract_weekday(p_date in date)
+    return number
+  is
+  begin
+    return to_number(to_char(v_date, 'd'));
+  end;
+
+  -- извлекает номер дня из даты
   function extract_day(p_date in date)
     return number
   is
@@ -61,6 +72,7 @@ is
     return extract(day from p_date);
   end;
 
+  -- извлекает номер часа из даты
   function extract_hour(p_date in date)
     return number
   is
@@ -91,7 +103,7 @@ is
     end if;
   end;
 
-  -- проверяет, есть ли  месяц в расписании
+  -- проверяет, есть ли месяц в расписании
   function contains_month(p_month in number, p_schedule in t_schedule)
     return boolean
   is
@@ -103,6 +115,7 @@ is
     end if;
   end;
 
+  -- проверяет, есть ли день в расписании
   function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
     return boolean
   is
@@ -114,7 +127,8 @@ is
     end if;
   end;
 
-  function contains_day_of_week(p_day_of_week in number, p_schedule in t_schedule)
+  -- проверяет, есть ли день недели в расписании
+  function contains_weekday(p_day_of_week in number, p_schedule in t_schedule)
     return boolean
   is
   begin
@@ -125,6 +139,7 @@ is
     end if;
   end;
 
+  -- проверяет, есть ли час в расписании
   function contains_hour(p_hour in number, p_schedule in t_schedule)
     return boolean
   is
@@ -136,6 +151,7 @@ is
     end if;
   end;
 
+  -- проверяет, есть ли минута в расписании
   function contains_minute(p_minute in number, p_schedule in t_schedule)
     return boolean
   is
@@ -149,7 +165,7 @@ is
 
   -- находит следующий ближайший месяц по расписанию
   -- возвращает номер месяца либо -1 если больше подходящих месяцев в расписании нет
-  function next_month(p_current_month in number, p_schedule in t_schedule)
+  function next_month_in_schedule(p_current_month in number, p_schedule in t_schedule)
     return number
   is
   begin
@@ -165,7 +181,7 @@ is
 
   -- находит следующий ближайший день по расписанию
   -- возвращает номер дня либо -1 если больше подходящих дней в расписании нет
-  function next_day(p_current_day in number, p_schedule in t_schedule)
+  function next_day_in_schedule(p_current_day in number, p_schedule in t_schedule)
     return  number
   is
   begin
@@ -181,7 +197,7 @@ is
 
   -- находит следующий ближайший час по расписанию
   -- возвращает номер часа либо -1 если больше подходящих часов в расписании нет
-  function next_hour(p_current_hour in number, p_schedule in t_schedule)
+  function next_hour_in_schedule(p_current_hour in number, p_schedule in t_schedule)
     return number
   is
   begin
@@ -197,7 +213,7 @@ is
 
   -- находит следующую ближайшую минуту по расписанию
   -- возвращает номер минуты либо -1 если больше подходящих минут в расписании нет
-  function next_minute(p_current_minute in number, p_schedule in t_schedule)
+  function next_minute_in_schedule(p_current_minute in number, p_schedule in t_schedule)
     return number
   is
   begin
@@ -221,7 +237,7 @@ is
 
   -- возвращает дату соответствующую началу указанного месяца p_month
   -- не изменяя год
-  function start_of_month(p_month in number, p_date in date)
+  function start_of_month(p_date in date, p_month in number)
     return date
   is
     v_current_year number;
@@ -236,7 +252,7 @@ is
   -- не изменяя год и месяц
   -- если заданный день не существует в этом месяце,
   -- то будет  выброшено исключение e_not_valid_day_of_month
-  function start_of_day(p_day in number, p_date in date)
+  function start_of_day(p_date in date, p_day in number)
     return date
   is
     v_current_year number;
@@ -253,7 +269,9 @@ is
       raise e_not_valid_day_of_month;
   end;
 
-  function start_of_hour(p_hour in number, p_date in date)
+  -- возвращает дату соответствующую началу указанного часа
+  -- не изменяя день
+  function start_of_hour(p_date in date, p_hour in number)
     return date
   is
     v_current_year number;
@@ -266,7 +284,9 @@ is
     return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
   end;
 
-  function start_of_minute(p_minute in number, p_date in date)
+  -- возвращает дату соответствующую началу указанной минуты
+  -- не изменяя час
+  function start_of_minute(p_date in date, p_minute in number)
     return date
   is
     v_current_year number;
@@ -298,7 +318,7 @@ is
       return v_date;
     else
       -- иначе ищем следующий по расписанию
-      v_current_month := next_month(v_current_month, p_schedule);
+      v_current_month := next_month_in_schedule(v_current_month, p_schedule);
       if v_current_month = -1 then
         v_current_year := extract_year(v_date);
         -- возможно он будет уже в следующем году
@@ -307,12 +327,12 @@ is
         return find_month(v_date, p_schedule);
       else
         debug_println('Move to month: ' || v_current_month || ' at date: '|| v_date);
-        return start_of_month(v_current_month, v_date);
+        return start_of_month(v_date, v_current_month);
       end if;
     end if;
   end;
 
-  function find_next_day(p_from in date, p_schedule in t_schedule)
+  function find_next_day_in_schedule(p_from in date, p_schedule in t_schedule)
     return date;
 
   -- находит ближайшую дату относительно заданной
@@ -323,28 +343,28 @@ is
   is
     v_date date;
     v_current_day number;
-    v_day_of_week number;
+    v_weekday number;
   begin
     v_date := p_from;
     v_current_day := extract_day(v_date);
     if contains_day_of_month(v_current_day, p_schedule) then
-      v_day_of_week := to_number(to_char(v_date, 'd'));
-      if contains_day_of_week(v_day_of_week, p_schedule) then
+      v_weekday := extract_weekday(v_date);
+      if contains_weekday(v_weekday, p_schedule) then
         debug_println('Found day at date: ' || v_date);
         return v_date;
       else
         -- если текущий день не подходит под расписание, то начинаем искать следующий
-        return find_next_day(v_date, p_schedule);
+        return find_next_day_in_schedule(v_date, p_schedule);
       end if;
     else
-      return find_next_day(v_date, p_schedule);
+      return find_next_day_in_schedule(v_date, p_schedule);
     end if;
   end;
 
   -- находит ближайшую дату начиная со следующего дня относительно заданной
   -- день которой будет находиться в расписании
   -- с учетом ограничения по дням месяца и дням недели
-  function find_next_day(p_from in date, p_schedule in t_schedule)
+  function find_next_day_in_schedule(p_from in date, p_schedule in t_schedule)
     return date 
   is
     v_date date;
@@ -353,18 +373,18 @@ is
   begin
     v_date := p_from;
     v_current_day := extract_day(v_date);
-    v_current_day := next_day(v_current_day, p_schedule);
+    v_current_day := next_day_in_schedule(v_current_day, p_schedule);
     if v_current_day = -1 then
       v_current_month := extract_month(v_date);
       -- возможно он будет уже в следующем месяце
       debug_println('Move to month: ' || (v_current_month+1) || ' at date: '|| v_date);
-      v_date := start_of_month(v_current_month+1, v_date);
+      v_date := start_of_month(v_date, v_current_month+1);
       v_date := find_month(v_date, p_schedule);
       -- рекурсивно продолжаем со следующего месяца
       return find_day(v_date, p_schedule);
     else
       debug_println('Move to day: ' || v_current_day || ' at date: '|| v_date);
-      v_date := start_of_day(v_current_day, v_date);
+      v_date := start_of_day(v_date, v_current_day);
       -- рекурсивно продолжаем со следующего дня
       -- ведь проверка на день недели происходит в find_day
       return find_day(v_date, p_schedule);
@@ -375,7 +395,7 @@ is
     when e_not_valid_day_of_month then
       v_current_month := extract_month(v_date);
       debug_println('Move to month: ' || (v_current_month+1) || ' at date: '|| v_date);
-      v_date := start_of_month(v_current_month+1, v_date);
+      v_date := start_of_month(v_date, v_current_month+1);
       v_date := find_month(v_date, p_schedule);
       return find_day(v_date, p_schedule);
   end;
@@ -396,15 +416,15 @@ is
       return v_date;
     else
       -- иначе ищем следующий по расписанию
-      v_current_hour := next_hour(v_current_hour, p_schedule);
+      v_current_hour := next_hour_in_schedule(v_current_hour, p_schedule);
       if v_current_hour = -1 then
         -- возможно он будет уже в следующем дне
-        v_date := find_next_day(v_date, p_schedule);
+        v_date := find_next_day_in_schedule(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего дня
         return find_hour(v_date, p_schedule);
       else
         debug_println('Move to hour: ' || v_current_hour || ' at date: '|| v_date);
-        return start_of_hour(v_current_hour, v_date);
+        return start_of_hour(v_date, v_current_hour);
       end if;
     end if;
   end;
@@ -423,21 +443,21 @@ is
     -- если ближайшая минута есть в расписании - оставляем её
     if contains_minute(v_current_minute, p_schedule) then
       debug_println('Move to minute: ' || v_current_minute || ' at date: '|| v_date);
-      return start_of_minute(v_current_minute, v_date);
+      return start_of_minute(v_date, v_current_minute);
     else
       -- иначе ищем следующую по расписанию
-      v_current_minute := next_minute(v_current_minute, p_schedule);
+      v_current_minute := next_minute_in_schedule(v_current_minute, p_schedule);
       if v_current_minute = -1 then
         v_current_hour := extract_hour(v_date);
         -- возможно она будет уже в следующем часе
         debug_println('Move to hour: ' || (v_current_hour+1) || ' at date: '|| v_date);
-        v_date := start_of_hour(v_current_hour + 1, v_date);
+        v_date := start_of_hour(v_date, v_current_hour + 1);
         v_date := find_hour(v_date, p_schedule);
         -- рекурсивно продолжаем со следующего часа
         return find_minute(v_date, p_schedule);
       else
         debug_println('Move to minute: ' || v_current_minute || ' at date: '|| v_date);
-        return start_of_minute(v_current_minute, v_date);
+        return start_of_minute(v_date, v_current_minute);
       end if;
     end if;
   end;
