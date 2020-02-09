@@ -7,7 +7,7 @@ is
   type t_hours is table of number(2, 0);
   type t_weekdays is table of number(1, 0);
   type t_days is table of number(2, 0);
-  type t_month is table of number(2, 0);
+  type t_months is table of number(2, 0);
 
   -- расписание состоит из коллекции для каждой единицы:
   -- месяц года, день месяца и тд.
@@ -19,7 +19,7 @@ is
     -- и тд
     weekdays t_weekdays,
     days t_days,
-    months t_month
+    months t_months
   );
 
   function extract_year(p_date in date)
@@ -424,39 +424,128 @@ is
     end if;
   end;
 
-  function parse_minutes(p_schedule_raw in varchar2)
+  function parse_numbers(p_numbers_raw in varchar2)
+    return table of number
+  is
+    type t_numbers is table of number(2);
+    v_numbers t_numbers;
+    -- v_idx pls_integer;
+  begin
+    -- v_numbers := t_numbers();
+    -- v_idx := 1;
+    -- while regex_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, v_idx, 'x', 1) > 0
+    -- loop
+      -- v_numbers.extend(1);
+      -- v_numbers(idx) := regex_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1);
+      -- v_idx := v_idx + 1;
+    -- end loop;
+    select distinct regex_substr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) n
+      bulk collect into v_numbers
+    from dual
+    connect by regex_instr(p_numbers_raw, '([0-9]{1,2})[,;]', 1, level, 'x', 1) > 0
+    order by n;
+
+    return v_numbers;
+  end;
+
+  function parse_minutes(p_minutes_raw in varchar2)
     return t_minutes
   is
+    v_minutes t_minutes;
   begin
-    return t_minutes(0, 45);
+    v_minutes := cast(parse_numbers(p_minutes_raw) as t_minutes);
+    for idx in v_minutes.first .. v_minutes.last
+    loop
+      if v_minutes(idx) NOT IN (0, 15, 30, 45) then
+        raise_application_error(-20001, 'Wrong minute number: ' || v_minutes(idx));
+      end if;
+    end loop;
+    return v_minutes;
   end;
 
-  function parse_hours(p_schedule_raw in varchar2)
+  function parse_hours(p_hours_raw in varchar2)
     return t_hours
   is
+    v_hours t_hours;
   begin
-    return t_hours(12);
+    v_hours := cast(parse_numbers(p_hours_raw) as t_hours);
+    for idx in v_hours.first .. v_hours.last
+    loop
+      if v_hours(idx) > 23 OR v_hours(idx) < 0 then
+        raise_application_error(-20001, 'Wrong hour number: ' || v_hours(idx));
+      end if;
+    end loop;
+    return v_hours;
   end;
 
-  function parse_weekdays(p_schedule_raw in varchar2)
+  function parse_weekdays(p_weekdays_raw in varchar2)
     return t_weekdays
   is
+    v_weekdays t_weekdays;
   begin
-    return t_weekdays(1, 2, 6);
+    v_weekdays := cast(parse_numbers(p_weekdays_raw) as t_weekdays);
+    for idx in v_weekdays.first .. v_weekdays.last
+    loop
+      if v_weekdays(idx) > 7 OR v_weekdays(idx) < 1 then
+        raise_application_error(-20001, 'Wrong weekday number: ' || v_weekdays(idx));
+      end if;
+    end loop;
+    return v_weekdays;
   end;
 
-  function parse_days(p_schedule_raw in varchar2)
+  function parse_days(p_days_raw in varchar2)
     return t_days
   is
+    v_days t_days;
   begin
-    return t_days(3,6,14,18,21,24,28);
+    v_days := cast(parse_numbers(p_days_raw) as t_days);
+    for idx in v_days.first .. v_days.last
+    loop
+      if v_days(idx) > 31 OR v_days(idx) < 1 then
+        raise_application_error(-20001, 'Wrong day number: ' || v_days(idx));
+      end if;
+    end loop;
+    return v_days;
   end;
 
-  function parse_months(p_schedule_raw in varchar2)
-    return t_month
+  function parse_months(p_months_raw in varchar2)
+    return t_months
   is
+    v_months t_months;
   begin
-    return t_month(1,2,3,4,5,6,7,8,9,10,11,12);
+    v_months := cast(parse_numbers(p_months_raw) as t_months);
+    for idx in v_months.first .. v_months.last
+    loop
+      if v_months(idx) > 12 OR v_months(idx) < 1 then
+        raise_application_error(-20001, 'Wrong month number: ' || v_months(idx));
+      end if;
+    end loop;
+    return v_months;
+  end;
+
+  function find_max_possible_day(p_months t_months)
+    return number
+  is
+    v_max_day number := 0;
+  begin
+    for idx in p_months.first .. p_months.last
+    loop
+      v_max_day := case p_months(idx)
+       when 1 then max(v_max_day, 31)
+       when 2 then max(v_max_day, 29)
+       when 3 then max(v_max_day, 31)
+       when 4 then max(v_max_day, 30)
+       when 5 then max(v_max_day, 31)
+       when 6 then max(v_max_day, 30)
+       when 7 then max(v_max_day, 31)
+       when 8 then max(v_max_day, 31)
+       when 9 then max(v_max_day, 30)
+       when 10 then max(v_max_day, 31)
+       when 11 then max(v_max_day, 30)
+       when 12 then max(v_max_day, 31)
+      end;
+    end loop;
+    return v_max_day;
   end;
 
   -- разбирает входную строку с расписанием
@@ -464,17 +553,39 @@ is
   function parse_schedule(p_schedule_raw in varchar2)
     return t_schedule
   is
+    v_minutes_raw varchar2(10 char);
+    v_hours_raw varchar2(100 char);
+    v_weekdays_raw varchar2(20 char);
+    v_days_raw varchar2(100 char);
+    v_months_raw varchar2(50 char);
+    v_schedule t_schedule;
   begin
-    return t_schedule(
-      parse_minutes(p_schedule_raw),
-      parse_hours(p_schedule_raw),
-      parse_weekdays(p_schedule_raw),
-      parse_days(p_schedule_raw),
-      parse_months(p_schedule_raw)
+    v_minutes_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 1, 'x');
+    v_hours_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 2, 'x');
+    v_weekdays_raw := regex_substr(p_schedule_raw, '([0-9],?)+;', 1, 3, 'x');
+    v_days_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 4, 'x');
+    v_months_raw := regex_substr(p_schedule_raw, '([0-9]{1,2},?)+;', 1, 5, 'x');
+
+    v_schedule := t_schedule(
+      parse_minutes(v_minutes_raw),
+      parse_hours(v_hours_raw),
+      parse_weekdays(v_weekdays_raw),
+      parse_days(v_days_raw),
+      parse_months(v_months_raw)
     );
+
+    -- проверим, что минимальный заданный номер дня
+    -- есть хотя бы в одном из заданных месяцев
+    v_max_possible_day := find_max_possible_day(v_schedule.months);
+    v_min_day_in_schedule := v_schedule.days(v_schedule.days.first);
+    if (v_min_day_in_schedule > v_max_possible_day) then
+      raise_application_error(-20002, 'Impossible schedule');
+    end if;
+
+    return v_schedule;
   end;
 
-  function find_next(p_from in date, p_schedule in t_schedule)
+  function find_next_run_date(p_from in date, p_schedule in t_schedule)
    return date
   is
     v_current date;
@@ -493,7 +604,7 @@ is
     v_schedule t_schedule;
   begin
     v_schedule := parse_schedule(p_schedule_raw);
-    return find_next(p_from, v_schedule);
+    return find_next_run_date(p_from, v_schedule);
   end;
 
 end;
