@@ -61,7 +61,7 @@ is
     return number
   is
   begin
-    return to_number(to_char(v_date, 'd'));
+    return to_number(to_char(p_date, 'd'));
   end;
 
   -- извлекает номер дня из даты
