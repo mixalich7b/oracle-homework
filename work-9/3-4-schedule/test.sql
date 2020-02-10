@@ -37,7 +37,7 @@ begin
 exception
   when others then
     if SQLCODE <> -20002 then
-      reraise;
+      raise_application_error(-20100, 'Test failed, with error: ' || SQLCODE || ', ' || SQLERRM);
     end if;
 end;
 /

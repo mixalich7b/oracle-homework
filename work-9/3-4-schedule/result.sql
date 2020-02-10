@@ -1,3 +1,387 @@
+-- t_numbers.tps
+create or replace type t_numbers force as table of number(2, 0);
+/
+
+-- t_schedule.tps
+-- расписание состоит из коллекции для каждой единицы:
+-- месяц года, день месяца и тд.
+create or replace type t_schedule force as object(
+  -- если минута есть в расписании, то её номер будет в коллекции
+  minutes t_numbers,
+  -- если месяц есть в расписании, то его номер будет в коллекции
+  hours t_numbers,
+  -- и тд
+  weekdays t_numbers,
+  days t_numbers,
+  months t_numbers
+);
+/
+
+-- date_utils_pack.pks
+create or replace package date_utils_pack
+is
+
+  e_not_valid_day_of_month exception;
+
+  -- извлекает номер года из даты
+  function extract_year(p_date in date)
+    return number;
+
+  -- извлекает номер месяца из даты
+  function extract_month(p_date in date)
+    return number;
+
+  -- извлекает номер дня недели из даты
+  function extract_weekday(p_date in date)
+    return number;
+
+  -- извлекает номер дня из даты
+  function extract_day(p_date in date)
+    return number;
+
+  -- извлекает номер часа из даты
+  function extract_hour(p_date in date)
+    return number;
+
+  -- возвращает ближайшую круглую минуту в рамках текущего часа
+  -- возвращает -1 если такой минуты в рамках текущего часа нет (например в 15:59:01)
+  function extract_nearest_minute(p_date in date)
+    return number;
+
+  -- возвращает дату соответствующую началу указанного года
+  function start_of_year(p_year in number)
+    return date;
+
+  -- возвращает дату соответствующую началу указанного месяца p_month
+  -- сохраняя год
+  function start_of_month(p_date in date, p_month in number)
+    return date;
+
+  -- возвращает дату соответствующую началу указанного дня,
+  -- сохраняя год и месяц
+  -- если заданный день не существует в этом месяце,
+  -- то будет  выброшено исключение e_not_valid_day_of_month
+  function start_of_day(p_date in date, p_day in number)
+    return date;
+
+  -- возвращает дату соответствующую началу указанного часа
+  -- сохраняя день
+  function start_of_hour(p_date in date, p_hour in number)
+    return date;
+
+  -- возвращает дату соответствующую началу указанной минуты
+  -- сохраняя час
+  function start_of_minute(p_date in date, p_minute in number)
+    return date;
+
+end;
+/
+
+-- date_utils_pack.pkb
+create or replace package body date_utils_pack
+is
+
+  function extract_year(p_date in date)
+    return number
+  is
+  begin
+    return extract(year from p_date);
+  end;
+
+  function extract_month(p_date in date)
+    return number
+  is
+  begin
+    return extract(month from p_date);
+  end;
+
+  function extract_weekday(p_date in date)
+    return number
+  is
+  begin
+    return to_number(to_char(p_date, 'd'));
+  end;
+
+  function extract_day(p_date in date)
+    return number
+  is
+  begin
+    return extract(day from p_date);
+  end;
+
+  function extract_hour(p_date in date)
+    return number
+  is
+  begin
+    return extract(hour from cast(p_date as timestamp));
+  end;
+
+  function extract_nearest_minute(p_date in date)
+    return number
+  is
+    v_nearest_minute number;
+    v_timestamp timestamp;
+  begin
+    v_timestamp := cast(p_date as timestamp);
+    -- текущую минуту не берём, если она уже началась
+    -- считаем, что ближайший запуск должен быть в 00 секунд
+    if extract (second from v_timestamp) = 0 then
+      return extract(minute from v_timestamp);
+    end if;
+    v_nearest_minute := extract(minute from cast(v_timestamp+1/24/60 as timestamp));
+    -- получим 0, если ближайшая минута будет уже в следующем часе
+    if v_nearest_minute = 0 then
+      return -1;
+    else
+      return v_nearest_minute;
+    end if;
+  end;
+
+  function start_of_year(p_year in number)
+    return date
+  is
+  begin
+    return to_date(p_year || '0101', 'YYYYMMDD');
+  end;
+
+  function start_of_month(p_date in date, p_month in number)
+    return date
+  is
+    v_current_year number;
+    v_current_month number;
+  begin
+    v_current_year := date_utils_pack.extract_year(p_date);
+    v_current_month := date_utils_pack.extract_month(p_date);
+    return trunc(add_months(p_date, p_month-v_current_month), 'MM');
+  end;
+
+  function start_of_day(p_date in date, p_day in number)
+    return date
+  is
+    v_current_year number;
+    v_current_month varchar2(2 char);
+
+    e_not_valid_date_for_month exception;
+    pragma exception_init(e_not_valid_date_for_month, -01839);
+  begin
+    v_current_year := date_utils_pack.extract_year(p_date);
+    v_current_month := to_char(p_date, 'MM');
+    return to_date(v_current_year || v_current_month || p_day, 'YYYYMMDD');
+  exception
+    when e_not_valid_date_for_month then
+      raise e_not_valid_day_of_month;
+  end;
+
+  function start_of_hour(p_date in date, p_hour in number)
+    return date
+  is
+    v_current_year number;
+    v_current_month varchar2(2 char);
+    v_current_day varchar2(2 char);
+  begin
+    v_current_year := date_utils_pack.extract_year(p_date);
+    v_current_month := to_char(p_date, 'MM');
+    v_current_day := to_char(p_date, 'DD');
+    return to_date(v_current_year || v_current_month || v_current_day || p_hour, 'YYYYMMDDHH24');
+  end;
+
+  function start_of_minute(p_date in date, p_minute in number)
+    return date
+  is
+    v_current_year number;
+    v_current_month varchar2(2 char);
+    v_current_day varchar2(2 char);
+    v_current_hour varchar2(2 char);
+  begin
+    v_current_year := date_utils_pack.extract_year(p_date);
+    v_current_month := to_char(p_date, 'MM');
+    v_current_day := to_char(p_date, 'DD');
+    v_current_hour := to_char(p_date, 'HH24');
+    return to_date(v_current_year || v_current_month || v_current_day || v_current_hour || p_minute, 'YYYYMMDDHH24MI');
+  end;
+
+end;
+/
+
+
+-- schedule_utils_pack.pks
+create or replace package schedule_utils_pack
+is
+
+  -- проверяет, есть ли месяц в расписании
+  function contains_month(p_month in number, p_schedule in t_schedule)
+    return boolean;
+
+  -- проверяет, есть ли день в расписании
+  function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
+    return boolean;
+
+  -- проверяет, есть ли день недели в расписании
+  function contains_weekday(p_day_of_week in number, p_schedule in t_schedule)
+    return boolean;
+
+  -- проверяет, есть ли час в расписании
+  function contains_hour(p_hour in number, p_schedule in t_schedule)
+    return boolean;
+
+  -- проверяет, есть ли минута в расписании
+  function contains_minute(p_minute in number, p_schedule in t_schedule)
+    return boolean;
+
+  -- находит следующий ближайший месяц по расписанию
+  -- возвращает номер месяца либо -1 если больше подходящих месяцев в расписании нет
+  function next_month_in_schedule(p_current_month in number, p_schedule in t_schedule)
+    return number;
+
+  -- находит следующий ближайший день по расписанию
+  -- возвращает номер дня либо -1 если больше подходящих дней в расписании нет
+  function next_day_in_schedule(p_current_day in number, p_schedule in t_schedule)
+    return number;
+
+  -- находит следующий ближайший час по расписанию
+  -- возвращает номер часа либо -1 если больше подходящих часов в расписании нет
+  function next_hour_in_schedule(p_current_hour in number, p_schedule in t_schedule)
+    return number;
+
+  -- находит следующую ближайшую минуту по расписанию
+  -- возвращает номер минуты либо -1 если больше подходящих минут в расписании нет
+  function next_minute_in_schedule(p_current_minute in number, p_schedule in t_schedule)
+    return number;
+
+end;
+/
+
+-- schedule_utils_pack.pkb
+create or replace package body schedule_utils_pack
+is
+
+  function contains_month(p_month in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_month member of p_schedule.months then
+      return TRUE;
+    else
+      return FALSE;
+    end if;
+  end;
+
+  function contains_day_of_month(p_day_of_month in number,  p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_day_of_month member of p_schedule.days then
+      return TRUE;
+    else
+      return FALSE;
+    end if;
+  end;
+
+  function contains_weekday(p_day_of_week in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_day_of_week member of p_schedule.weekdays then
+      return TRUE;
+    else
+      return FALSE;
+    end if;
+  end;
+
+  function contains_hour(p_hour in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_hour member of p_schedule.hours then
+      return TRUE;
+    else
+      return FALSE;
+    end if;
+  end;
+
+  function contains_minute(p_minute in number, p_schedule in t_schedule)
+    return boolean
+  is
+  begin
+    if p_minute member of p_schedule.minutes then
+      return TRUE;
+    else
+      return FALSE;
+    end if;
+  end;
+
+  function next_month_in_schedule(p_current_month in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.months.first .. p_schedule.months.last
+    loop
+      if p_schedule.months(idx) > p_current_month then
+        return p_schedule.months(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  function next_day_in_schedule(p_current_day in number, p_schedule in t_schedule)
+    return  number
+  is
+  begin
+    for idx in p_schedule.days.first .. p_schedule.days.last
+    loop
+      if p_schedule.days(idx) > p_current_day then
+        return p_schedule.days(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  function next_hour_in_schedule(p_current_hour in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.hours.first .. p_schedule.hours.last
+    loop
+      if p_schedule.hours(idx) > p_current_hour then
+        return p_schedule.hours(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+
+  function next_minute_in_schedule(p_current_minute in number, p_schedule in t_schedule)
+    return number
+  is
+  begin
+    for idx in p_schedule.minutes.first .. p_schedule.minutes.last
+    loop
+      if p_schedule.minutes(idx) > p_current_minute then
+        return p_schedule.minutes(idx);
+      end if;
+    end loop;
+
+    return -1;
+  end;
+end;
+/
+
+-- schedule_pack.pks
+create or replace package schedule_pack
+is
+  
+  function get_next_run_date(p_from in date, p_schedule_raw in  varchar2)
+    return date;
+
+  procedure enable_debug;
+  procedure disable_debug;
+
+end;
+/
+
+-- schedule_pack.pkb
 create or replace package body schedule_pack
 is
 
@@ -365,5 +749,51 @@ is
     return find_next_run_date(p_from, v_schedule);
   end;
 
+end;
+/
+
+
+-- test.sql
+alter session set nls_territory = 'america';
+
+begin
+  schedule_pack.enable_debug;
+end;
+/
+
+declare
+  v_from date := to_date('09.07.2010 23:36', 'DD.MM.YYYY HH24:MI');
+  v_date date;
+begin
+
+  v_date := schedule_pack.get_next_run_date(
+    v_from,
+    '0,45;12;1,2,6;3,6,14,18,21,24,28;1,2,3,4,5,6,7,8,9,10,11,12;'
+  ); -- контрольный пример
+  dbms_output.put_line(to_char(v_date, 'DD-MM-YYYY HH24:MI:SS'));
+  if v_date <> to_date('18-07-2010 12:00:00', 'DD-MM-YYYY HH24:MI:SS') then
+    raise_application_error(-20100, 'Test failed: control example');
+  end if;
+
+  v_date := schedule_pack.get_next_run_date(
+    v_from,
+    '45;12;1,2,6;29;2;'
+  ); -- найдёт високосный год
+  dbms_output.put_line(to_char(v_date, 'DD-MM-YYYY HH24:MI:SS'));
+  if v_date <> to_date('29-02-2016 12:45:00', 'DD-MM-YYYY HH24:MI:SS') then
+    raise_application_error(-20100, 'Test failed: visokosny year');
+  end if;
+
+  v_date := schedule_pack.get_next_run_date(
+    v_from,
+    '0,45;12;1,2,6;31;2,4;'
+  ); -- бросит исключение, так как 31 дня нет ни в феврале, ни в апреле
+  raise_application_error(-20100, 'Test failed: wrong calendar');
+
+exception
+  when others then
+    if SQLCODE <> -20002 then
+      raise_application_error(-20100, 'Test failed, with error: ' || SQLCODE || ', ' || SQLERRM);
+    end if;
 end;
 /
