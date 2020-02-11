@@ -1,0 +1,37 @@
+-- drop table application_log;
+
+create table application_log (
+  al_timestamp timestamp not null,
+  al_level varchar2(10 char) not null,
+  al_stack_trace varchar2(4000 char),
+  al_caller varchar2(500 char) not null,
+  al_message varchar2(1000 char) not null,
+  al_sid number(10, 0) not null,
+  -- al_pid number (10, 0) not null, -- не нашёл, как вытащить pid не имея доступа  к v$process
+  al_osuser varchar2(200 char) not null,
+  al_oracle_user varchar2(200 char) not null
+)
+partition  by range (al_timestamp) interval (numtodsinterval(1, 'DAY'))
+subpartition by list (al_level) -- предположим, нам  часто требуется искать все сообщения с определённым уровнем
+subpartition template (
+  subpartition application_log_info values ('INFO'),
+  subpartition application_log_warn values ('WARN'),
+  subpartition application_log_error values ('ERROR')
+)
+(partition application_log_before_2020 values less than (to_date('01-01-2020','DD-MM-YYYY'))
+);
+
+alter table application_log add constraint al_level_ck check (al_level in ('INFO', 'WARN', 'ERROR'));
+
+create index application_log_timestamp_i on application_log (al_timestamp) local;
+
+comment on table application_log is 'Логи приложения';
+comment on column application_log.al_timestamp is 'Время вставки записи в лог';
+comment on column application_log.al_level is 'Уровень логирования (тип сообщения) - INFO, WARN, ERROR';
+comment on column application_log.al_stack_trace is 'Стек вызова';
+comment on column application_log.al_caller is 'Место/название модуля/класса из которого произошла запись сообщения в лог';
+comment on column application_log.al_message is 'Сообщение';
+comment on column application_log.al_sid is 'Id сессии';
+--  comment on column application_log.al_pid is 'Id пользовательского процесса';
+comment on column application_log.al_osuser is 'Имя пользователя в операционной системе клиента';
+comment on column application_log.al_oracle_user is 'Имя пользователя в БД';
