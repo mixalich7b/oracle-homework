@@ -88,21 +88,21 @@ create or replace package log_pack
 is
 
   procedure log_info (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   );
 
   procedure log_warn (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   );
 
   procedure log_error (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   );
 
   function is_api
@@ -121,9 +121,9 @@ is
 
   procedure add_log_entry (
     pi_level in varchar2,
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   )
   is
     pragma autonomous_transaction;
@@ -142,9 +142,9 @@ is
     values (
       systimestamp,
       pi_level,
-      pi_stack_trace,
-      pi_caller,
-      pi_message,
+      substr(pi_stack_trace, 1, 4000),
+      substr(pi_caller, 1, 500),
+      substr(pi_message, 1, 1000),
       sys_context('USERENV', 'SID'),
       sys_context('USERENV', 'OS_USER'),
       sys_context('USERENV', 'CURRENT_USER')
@@ -154,9 +154,9 @@ is
   end;
 
   procedure log_info (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   )
   is
   begin
@@ -164,9 +164,9 @@ is
   end;
 
   procedure log_warn (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   )
   is
   begin
@@ -174,9 +174,9 @@ is
   end;
 
   procedure log_error (
-    pi_caller in varchar2,
-    pi_message in varchar2,
-    pi_stack_trace in varchar2 default null
+    pi_caller in application_log.al_caller%type,
+    pi_message in application_log.al_message%type,
+    pi_stack_trace in application_log.al_stack_trace%type default null
   )
   is
   begin
