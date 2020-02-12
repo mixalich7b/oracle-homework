@@ -1,13 +1,13 @@
 -- drop table application_log;
 
 create table application_log (
-  al_timestamp timestamp not null,
+  al_timestamp timestamp not null default systimestamp,
   al_level varchar2(10 char) not null,
   al_stack_trace varchar2(4000 char),
   al_caller varchar2(500 char) not null,
   al_message varchar2(1000 char) not null,
   al_sid number(10, 0) not null,
-  -- al_pid number (10, 0) not null, -- не нашёл, как вытащить pid не имея доступа  к v$process
+  al_pid number (10, 0) not null,
   al_osuser varchar2(200 char) not null,
   al_oracle_user varchar2(200 char) not null
 )

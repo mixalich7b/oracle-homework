@@ -1,0 +1,17 @@
+begin
+  dbms_scheduler.create_job(
+    job_name => 'clear_old_logs_job',
+    job_type => 'STORED_PROCEDURE',
+    job_action => 'log_pack.clear_old_logs',
+    start_date => null,
+    repeat_interval => repeat_interval => 'freq = daily; byhour = 0; byminute = 10; bysecond = 0',
+    end_date => null,
+    auto_drop => false,
+    enabled => false,
+    comments => 'Удаляет логи (партиции) старше 30 дней'
+  );
+  
+  dbms_scheduler.enable('clear_old_logs_job');
+  commit;
+end;
+/
