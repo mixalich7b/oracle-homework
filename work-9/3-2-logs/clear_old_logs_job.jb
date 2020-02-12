@@ -10,7 +10,7 @@ begin
     enabled => false,
     comments => 'Удаляет логи (партиции) старше 30 дней'
   );
-  
+
   dbms_scheduler.enable('clear_old_logs_job');
   commit;
 end;
