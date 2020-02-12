@@ -11,17 +11,8 @@ is
   )
   is
     pragma autonomous_transaction;
-    v_sid number(10, 0);
-    v_pid number(10, 0);
   begin
     g_is_api := TRUE;
-
-    v_sid := sys_context('USERENV', 'SID');
-    select p.spid
-    into v_pid
-      from v$session s
-      join v$process p on p.addr = s.paddr
-    where s.sid = v_sid;
 
     insert into dev.application_log (
       al_timestamp,
@@ -40,15 +31,15 @@ is
       substr(pi_stack_trace, 1, 4000),
       substr(pi_caller, 1, 500),
       substr(pi_message, 1, 1000),
-      v_sid,
-      v_pid
+      sys_context('USERENV', 'SID'),
+      get_pid(),
       sys_context('USERENV', 'OS_USER'),
       sys_context('USERENV', 'CURRENT_USER')
     );
     g_is_api := FALSE;
     commit;
   exception
-    when other then
+    when others then
       g_is_api := FALSE;
   end;
 
@@ -63,7 +54,7 @@ is
 
   procedure log_warn (
     pi_caller in application_log.al_caller%type,
-    pi_message in application_log.al_message%type,
+    pi_message in application_log.al_message%type
   )
   is
   begin
@@ -72,7 +63,7 @@ is
 
   procedure log_error (
     pi_caller in application_log.al_caller%type,
-    pi_message in application_log.al_message%type,
+    pi_message in application_log.al_message%type
   )
   is
   begin

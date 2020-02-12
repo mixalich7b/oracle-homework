@@ -1,0 +1,4 @@
+-- as DBA
+
+create or replace synonym dev.get_pid for sys.get_pid;
+/

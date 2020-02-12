@@ -1,7 +1,7 @@
 -- drop table application_log;
 
 create table application_log (
-  al_timestamp timestamp not null default systimestamp,
+  al_timestamp timestamp default systimestamp not null,
   al_level varchar2(10 char) not null,
   al_stack_trace varchar2(4000 char),
   al_caller varchar2(500 char) not null,

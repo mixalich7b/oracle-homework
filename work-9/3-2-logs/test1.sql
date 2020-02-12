@@ -7,11 +7,7 @@ declare
 begin
 
   v_sid := sys_context('USERENV', 'SID');
-  select p.spid
-  into v_pid
-    from v$session s
-    join v$process p on p.addr = s.paddr
-  where s.sid = v_sid;
+  v_pid := get_pid();
   v_osuser := sys_context('USERENV', 'OS_USER');
   v_oracle_user := sys_context('USERENV', 'CURRENT_USER');
 
