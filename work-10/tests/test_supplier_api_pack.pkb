@@ -5,7 +5,7 @@ is
 
   procedure create_supplier
   is
-    v_splr_legal_name in supplier.splr_legal_name%type =: 'Test supplier PLC';
+    v_splr_legal_name in supplier.splr_legal_name%type := 'Test supplier PLC';
     v_splr_agreement_number in supplier.splr_agreement_number%type := 'test_12345/01-01';
     v_stf_id in supplier.stf_id%type := supplier_api_pack.c_splr_stf_id_default;
     v_splr_id supplier.splr_id%type;
