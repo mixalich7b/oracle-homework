@@ -3,7 +3,7 @@ is
 
   c_test_supplier_name constant supplier.splr_name%type := 'Test supplier';
 
-  procedure create_supplier_with_valid_params
+  procedure create_supplier
   is
     v_splr_legal_name in supplier.splr_legal_name%type =: 'Test supplier PLC';
     v_splr_agreement_number in supplier.splr_agreement_number%type := 'test_12345/01-01';
