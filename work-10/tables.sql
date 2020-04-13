@@ -6,7 +6,8 @@ alter session set current_schema=k_tupitsin_study;
 -- drop sequence supplier_seq;
 
 create table supplier_status (
-  ss_id number(3, 0) not null
+  ss_id number(3, 0) not null,
+  ss_description varchar2(100 char) not null
 );
 alter table supplier_status add constraint supplier_status_ss_id_pk primary key (ss_id);
 
