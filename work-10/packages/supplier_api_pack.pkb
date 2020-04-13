@@ -2,9 +2,6 @@ create or replace package body supplier_api_pack
 is
   g_is_api boolean := FALSE;
 
-  c_splr_ss_id_enabled constant supplier_status.ss_id%type := 2;
-  c_splr_ss_id_blocked constant supplier_status.ss_id%type := 3;
-
   procedure add_supplier (
     pi_splr_name in supplier.splr_name%type,
     pi_splr_legal_name in supplier.splr_legal_name%type,
@@ -39,6 +36,9 @@ is
     g_is_api := TRUE;
     update supplier set ss_id = pi_ss_id
       where splr_id = pi_splr_id;
+    if sql%rowcount = 0 then
+      raise NO_DATA_FOUND;
+    end if;
     g_is_api := FALSE;
   exception
     when others then
@@ -71,6 +71,9 @@ is
     g_is_api := TRUE;
     update supplier set stf_id = pi_stf_id
       where splr_id = pi_splr_id;
+    if sql%rowcount = 0 then
+      raise NO_DATA_FOUND;
+    end if;
     g_is_api := FALSE;
   exception
     when others then

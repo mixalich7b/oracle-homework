@@ -25,7 +25,7 @@ is
   procedure enable_supplier;
 
   --%test(Включение несуществующего поставщика)
-  --%throws(-2291)
+  --%throws(NO_DATA_FOUND)
   procedure enable_non_existing_supplier;
 
   --%test(Выключение существующего поставщика)
@@ -34,7 +34,7 @@ is
   procedure disable_supplier;
 
   --%test(Выключение несуществующего поставщика)
-  --%throws(-2291)
+  --%throws(NO_DATA_FOUND)
   procedure disable_non_existing_supplier;
 
   --%test(Переключение поставщика на существующий тариф)
@@ -53,6 +53,10 @@ is
   -- utils
   procedure add_test_supplier;
   procedure delete_test_supplier;
+
+  procedure add_test_tariff;
+  procedure delete_test_tariff;
+
 
 end;
 /
