@@ -19,8 +19,39 @@ is
   --%throws(-2291)
   procedure add_splr_with_wrong_tariff;
 
+  --%test(Включение существующего поставщика)
+  --%beforetest(add_test_supplier)
+  --%aftertest(delete_test_supplier)
+  procedure enable_supplier;
+
+  --%test(Включение несуществующего поставщика)
+  --%throws(-2291)
+  procedure enable_non_existing_supplier;
+
+  --%test(Выключение существующего поставщика)
+  --%beforetest(add_test_supplier)
+  --%aftertest(delete_test_supplier)
+  procedure disable_supplier;
+
+  --%test(Выключение несуществующего поставщика)
+  --%throws(-2291)
+  procedure disable_non_existing_supplier;
+
+  --%test(Переключение поставщика на существующий тариф)
+  --%beforetest(add_test_tariff)
+  --%beforetest(add_test_supplier)
+  --%aftertest(delete_test_supplier)
+  --%aftertest(delete_test_tariff)
+  procedure change_tariff;
+
+  --%test(Переключение поставщика на несуществующий тариф)
+  --%beforetest(add_test_supplier)
+  --%aftertest(delete_test_supplier)
+  --%throws(-2291)
+  procedure change_to_non_existing_tariff;
 
   -- utils
+  procedure add_test_supplier;
   procedure delete_test_supplier;
 
 end;
