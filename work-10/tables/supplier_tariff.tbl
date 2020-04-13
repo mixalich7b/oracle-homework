@@ -1,0 +1,16 @@
+create table supplier_tariff (
+  stf_id number(3, 0) not null,
+  stf_description varchar2 (200 char) not null,
+  sft_commission_percent number(7, 4) not null,
+  sft_commission_fix number (20, 2) not null
+);
+alter table supplier_tariff add constraint supplier_tariff_stf_id_pk primary key (stf_id);
+alter table supplier_tariff add constraint sft_commission_percent_ck check (sft_commission_percent between 0 and 99.99);
+alter table supplier_tariff add constraint sft_commission_fix_ck check (sft_commission_fix >= 0);
+
+
+comment on table supplier_tariff is 'Тариф поставщика';
+comment on column supplier_tariff.stf_id is 'Id тарифа';
+comment on column supplier_tariff.stf_description is 'Описание тарифа';
+comment on column supplier_tariff.sft_commission_percent is 'Комиссия в процентах';
+comment on column supplier_tariff.sft_commission_fix is 'Фиксированая комиссия';

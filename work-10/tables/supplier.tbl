@@ -1,0 +1,27 @@
+create table supplier(
+  splr_id number (10, 0) not null,
+  splr_name varchar2(200 char) not null,
+  splr_legal_name varchar2(1000 char) not null,
+  splr_agreement_number varchar2(100 char) not null,
+  splr_agreement_date date not null,
+  ss_id number(3, 0) not null,
+  stf_id number(3, 0) not null
+);
+
+alter table supplier add constraint supplier_splr_id_pk primary key (splr_id);
+
+create index splr_ss_id_i on supplier (ss_id);
+alter table supplier add constraint splr_ss_id_fk foreign key (ss_id) references supplier_status(ss_id);
+
+create index splr_stf_id_i on supplier (stf_id);
+alter table supplier add constraint splr_stf_id_fk foreign key (stf_id) references supplier_tariff(stf_id);
+
+
+comment on table supplier is 'Поставщик';
+comment on column supplier.splr_id is 'Id поставщика';
+comment on column supplier.splr_name is 'Название поставщика';
+comment on column supplier.splr_legal_name is 'Название юридического лица поставщика';
+comment on column supplier.splr_agreement_number is 'Номер договора';
+comment on column supplier.splr_agreement_date is 'Дата договора';
+comment on column supplier.ss_id is 'Id текущего статуса';
+comment on column supplier.stf_id is 'Id текущего тарифа';
