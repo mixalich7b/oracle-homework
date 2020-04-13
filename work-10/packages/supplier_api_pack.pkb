@@ -6,12 +6,12 @@ is
   c_splr_ss_id_blocked constant supplier_status.ss_id%type := 3;
 
   procedure add_supplier (
-    pi_splr_name in varchar2,
-    pi_splr_legal_name in varchar2,
-    pi_splr_agreement_number in varchar2,
-    pi_stf_id in number,
-    pi_splr_agreement_date in date := null,
-    po_splr_id out number
+    pi_splr_name in supplier.splr_name%type,
+    pi_splr_legal_name in supplier.splr_legal_name%type,
+    pi_splr_agreement_number in supplier.splr_agreement_number%type,
+    pi_stf_id in supplier.stf_id%type,
+    pi_splr_agreement_date in supplier.splr_agreement_date%type := null,
+    po_splr_id out supplier.splr_id%type
   )
   is
   begin
@@ -31,8 +31,8 @@ is
   end;
 
   procedure change_supplier_status (
-    pi_splr_id in number,
-    pi_ss_id in number
+    pi_splr_id in supplier.splr_id%type,
+    pi_ss_id in supplier.ss_id%type
   )
   is
   begin
@@ -47,7 +47,7 @@ is
   end;
 
   procedure enable_supplier (
-    pi_splr_id in number
+    pi_splr_id in supplier.splr_id%type
   )
   is
   begin
@@ -55,7 +55,7 @@ is
   end;
 
   procedure disable_supplier (
-    pi_splr_id in number
+    pi_splr_id in supplier.splr_id%type
   )
   is
   begin
@@ -63,8 +63,8 @@ is
   end;
 
   procedure change_tariff (
-    pi_splr_id in number,
-    pi_stf_id in number
+    pi_splr_id in supplier.splr_id%type,
+    pi_stf_id in supplier.stf_id%type
   )
   is
   begin

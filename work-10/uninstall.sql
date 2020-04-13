@@ -4,6 +4,9 @@ spool uninstall_&patch_num..log replace
 
 whenever sqlerror continue
 
+prompt drop package test_supplier_api_pack;
+drop package test_supplier_api_pack;
+
 prompt drop trigger supplier_b_iu;
 drop trigger supplier_b_iu;
 

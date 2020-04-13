@@ -25,9 +25,23 @@ prompt
 prompt >>>> others/_after.sql
 @@others/_after.sql
 
+prompt Install tests
+prompt >>>> tests/_tests.sql
+@@tests/_tests.sql
+
 prompt ================
 prompt 
 prompt Patch was successfull installed!
+
+prompt ================
+prompt 
+prompt Now will run tests
+
+ut3.ut.run();
+
+prompt ================
+prompt 
+prompt Tests run finished!
 
 spool off
 
