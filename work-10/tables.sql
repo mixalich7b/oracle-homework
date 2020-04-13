@@ -1,9 +1,9 @@
 alter session set current_schema=k_tupitsin_study;
 
--- drop table supplier; 
--- drop table supplier_status; 
--- drop table supplier_tariff;
--- drop sequence supplier_seq;
+drop table supplier;
+drop table supplier_status;
+drop table supplier_tariff;
+drop sequence supplier_seq;
 
 create table supplier_status (
   ss_id number(3, 0) not null,
@@ -14,7 +14,7 @@ alter table supplier_status add constraint supplier_status_ss_id_pk primary key 
 create table supplier_tariff (
   stf_id number(3, 0) not null,
   stf_description varchar2 (200 char) not null,
-  sft_commission_percent number(3, 7) not null,
+  sft_commission_percent number(7, 4) not null,
   sft_commission_fix number (20, 2) not null
 );
 alter table supplier_tariff add constraint supplier_tariff_stf_id_pk primary key (stf_id);
