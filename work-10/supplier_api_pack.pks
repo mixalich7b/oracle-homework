@@ -1,8 +1,8 @@
 create or replace package supplier_api_pack
 is
 
-  c_splr_ss_id_new_disabled := 1;
-  c_splr_stf_id_default := 1;
+  c_splr_ss_id_new_disabled constant supplier_status.ss_id%type  := 1;
+  c_splr_stf_id_default     constant supplier_tariff.stf_id%type := 1;
 
   procedure add_supplier (
     pi_splr_name in varchar2,
