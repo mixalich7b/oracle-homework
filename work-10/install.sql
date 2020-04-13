@@ -1,5 +1,5 @@
 set verify off
-@services/patch_ver.sql
+@@services/patch_ver.sql
 spool install_&patch_num..log replace
 
 whenever sqlerror exit failure
@@ -12,11 +12,11 @@ prompt
 
 prompt >>>> tables/_tables.sql
 prompt 
-@tables/_tables.sql
+@@tables/_tables.sql
 
 prompt >>>> packages/_packages.sql
 prompt 
-@packages/_packages.sql
+@@packages/_packages.sql
 
 prompt >>>> data/_data.sql
 prompt 
@@ -25,9 +25,9 @@ prompt
 prompt >>>> others/_after.sql
 @@others/_after.sql
 
-prompt Install tests
-prompt >>>> tests/_tests.sql
-@@tests/_tests.sql
+prompt >>>> tests/_install.sql
+prompt 
+@@tests/_install.sql
 
 prompt ================
 prompt 
@@ -37,7 +37,9 @@ prompt ================
 prompt 
 prompt Now will run tests
 
-ut3.ut.run();
+prompt >>>> tests/_run.sql
+prompt 
+@@tests/_run.sql
 
 prompt ================
 prompt 
